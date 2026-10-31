@@ -1,0 +1,3209 @@
+STUDYSPRINT SUPABASE PROJECT — COMPLETE SOURCE CODE IN FOLDER ORDER
+Copy each FILE section into a file with the exact path shown. The local configuration template has placeholders; add your own Supabase URL and public anon/publishable key on your computer.
+Never place or share a Supabase service-role key in this project.
+
+
+========================================================================================
+FILE: .env.example
+========================================================================================
+# Copy this file to .env and fill these values from Supabase Project Settings → API.
+# The anon/publishable key is browser-visible by design; protect data with the RLS policies in supabase/schema.sql.
+SUPABASE_URL=https://YOUR-PROJECT-REF.supabase.co
+SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_OR_PUBLISHABLE_KEY
+PORT=3000
+
+
+========================================================================================
+FILE: .gitignore
+========================================================================================
+node_modules/
+dist/
+.env
+.DS_Store
+Thumbs.db
+*.log
+
+
+========================================================================================
+FILE: package.json
+========================================================================================
+{
+  "name": "studysprint-supabase",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k \"node server/index.js\" \"vite --config vite.config.js\"",
+    "build": "vite build --config vite.config.js",
+    "start": "node server/index.js --production"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.57.0",
+    "concurrently": "^9.2.1",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
+    "vite": "^6.3.5"
+  },
+  "devDependencies": {}
+}
+
+
+========================================================================================
+FILE: vite.config.js
+========================================================================================
+import { defineConfig } from "vite";
+
+export default defineConfig({
+  root: "client",
+  server: {
+    host: "0.0.0.0",
+    proxy: { "/api": "http://localhost:3000" },
+  },
+  build: {
+    outDir: "../dist",
+    emptyOutDir: true,
+  },
+});
+
+
+========================================================================================
+FILE: client/index.html
+========================================================================================
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#171821">
+  <meta name="description" content="A calm study space to plan tasks, focus in short sprints, manage a GMT timetable and track sleep sessions.">
+  <title>StudySprint — your study space</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="script.js"></script>
+  <script type="module" src="cloud.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="#today" aria-label="StudySprint home"><span class="brand-mark">ϟ</span><span class="brand-name">study<span>sprint</span></span></a>
+      <div class="side-label">YOUR SPACE</div>
+      <nav class="side-nav" aria-label="Main navigation">
+        <a class="nav-link nav-link--active" href="#today" data-app-page="today"><span class="nav-symbol">⌂</span><span>Today</span></a>
+        <a class="nav-link" href="#curriculum" data-app-page="sprint"><span class="nav-symbol">⌘</span><span>Sprint</span></a>
+        <a class="nav-link" href="#tasks" data-app-page="tasks"><span class="nav-symbol">☷</span><span>Diary</span><span class="nav-count" id="nav-task-count">3</span></a>
+        <a class="nav-link" href="#focus" data-app-page="focus"><span class="nav-symbol">◷</span><span>Focus</span></a>
+        <a class="nav-link" href="#alarm" data-app-page="alarm"><span class="nav-symbol">♬</span><span>Alarm</span></a>
+        <a class="nav-link" href="#progress" data-app-page="progress"><span class="nav-symbol">▥</span><span>Progress</span></a>
+        <a class="nav-link" href="#timetable" data-app-page="timetable"><span class="nav-symbol">▦</span><span>Routine</span></a>
+        <a class="nav-link" href="#sleep" data-app-page="sleep"><span class="nav-symbol">☾</span><span>Sleep</span></a>
+        <a class="nav-link" href="#study-helper" data-app-page="study-helper"><span class="nav-symbol">✦</span><span>Helper</span></a>
+        <a class="nav-link" href="#files" data-app-page="files" aria-label="Important files"><span class="nav-symbol">▤</span><span>Files</span></a>
+        <a class="nav-link" href="#admin" data-app-page="admin"><span class="nav-symbol">▣</span><span>Profile</span></a>
+      </nav>
+      <div class="sidebar-spacer"></div>
+      <div class="sidebar-goal">
+        <div class="sidebar-goal-icon">◎</div><p class="sidebar-goal-title">Your daily goal</p>
+        <p class="sidebar-goal-copy">A little focus goes a long way.</p>
+        <div class="mini-progress"><span id="sidebar-progress"></span></div>
+        <div class="goal-foot"><span id="sidebar-goal-minutes">0 / 120 min</span><span id="sidebar-goal-percent">0%</span></div>
+      </div>
+      <div class="sidebar-note"><span>♧</span> Small steps. Real progress.</div>
+    </aside>
+
+    <main class="main-content" id="today">
+      <header class="topbar">
+        <div class="breadcrumb"><span>My study space</span><span class="breadcrumb-dot">/</span><strong id="current-page-title">Today</strong></div>
+        <div class="topbar-right"><span class="date-pill"><span class="online-dot"></span><span id="today-date"></span><span class="gmt-tag">GMT</span></span><span class="avatar" aria-label="Student profile">S</span></div>
+      </header>
+
+      <div class="page-wrap">
+        <section class="welcome-row" data-view="today">
+          <div><div class="eyebrow"><span>✧</span> YOUR DAY, YOUR PACE</div><h1>Make today <em>count.</em></h1><p class="welcome-copy">One small study session is a good place to start.</p></div>
+          <div class="home-actions"><a class="primary-cta" href="#focus">Start a focus session <span>→</span></a><a class="home-secondary-link" href="#tasks">Open today’s diary</a></div>
+        </section>
+
+        <section class="curriculum-zone page-section-view" id="curriculum" data-view="sprint" aria-labelledby="curriculum-heading">
+          <div class="curriculum-section-head">
+            <h2 id="curriculum-heading">SPRINT CURRICULUM SNAPSHOT</h2>
+            <span class="curriculum-count">Card <strong id="curriculum-card-number">4</strong> of 12</span>
+          </div>
+          <article class="curriculum-card">
+            <div class="curriculum-art" aria-hidden="true">
+              <div class="curriculum-art-head"><span class="curriculum-live-dot"></span> STUDYSPRINT / LEARNING MAP <span class="curriculum-art-state">IN PROGRESS</span></div>
+              <svg class="curriculum-map" viewBox="0 0 720 230" preserveAspectRatio="xMidYMid meet">
+                <defs><linearGradient id="mapLine" x1="0" x2="1"><stop offset="0" stop-color="#885cff"/><stop offset="1" stop-color="#48e0df"/></linearGradient><filter id="mapGlow"><feGaussianBlur stdDeviation="4" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+                <g fill="none" stroke="url(#mapLine)" stroke-width="2" opacity=".6"><path d="M75 136 180 82 278 143 376 74 485 131 630 67"/><path d="M180 82 199 185 376 74 414 190 485 131" opacity=".45"/><path d="M278 143 314 45 485 131 548 187 630 67" opacity=".32"/></g>
+                <g filter="url(#mapGlow)"><circle cx="75" cy="136" r="8" fill="#a084ff"/><circle cx="180" cy="82" r="7" fill="#a084ff"/><circle cx="278" cy="143" r="9" fill="#55e1df"/><circle cx="376" cy="74" r="11" fill="#8b6dff"/><circle cx="485" cy="131" r="8" fill="#55e1df"/><circle cx="630" cy="67" r="9" fill="#55e1df"/><circle cx="199" cy="185" r="5" fill="#e3d433"/><circle cx="414" cy="190" r="5" fill="#e3d433"/><circle cx="548" cy="187" r="5" fill="#a084ff"/></g>
+                <g fill="#bcc4dd" font-family="Arial,sans-serif" font-size="10"><text x="48" y="165">HTML</text><text x="151" y="60">CSS</text><text x="251" y="170">LAYOUT</text><text x="344" y="46">YOU ARE HERE</text><text x="463" y="158">JAVASCRIPT</text><text x="608" y="47">PROJECT</text></g>
+              </svg>
+              <span class="curriculum-art-tag">12 CARDS · BEGINNER TO BUILDER</span>
+            </div>
+            <div class="curriculum-copy">
+              <span class="curriculum-kicker" id="curriculum-topic">WEB LAYOUT · CARD 04</span>
+              <h3 id="curriculum-title">Responsive layouts</h3>
+              <p id="curriculum-summary">Learn how flexible grids and breakpoints help one page work on both a laptop and a phone.</p>
+              <div class="curriculum-actions"><button class="curriculum-nav-button" id="curriculum-previous" type="button" aria-label="Previous curriculum card">← Previous</button><div class="curriculum-progress" aria-hidden="true"><span id="curriculum-progress-fill"></span></div><button class="curriculum-nav-button curriculum-nav-button--primary" id="curriculum-next" type="button">Next card →</button></div>
+            </div>
+          </article>
+        </section>
+
+        <section class="panel profile-panel page-section-view" id="profile" data-view="admin" aria-labelledby="profile-title">
+          <div class="profile-heading"><div><div class="section-kicker">LOCAL PROFILE · DEMO ONLY</div><h2 id="profile-title">Your StudySprint profile</h2><p class="panel-subtitle">Create an account to securely save your StudySprint data across devices.</p></div><span class="demo-pill">Protected with Supabase Auth</span></div>
+          <div class="profile-content">
+            <div class="profile-intro"><div class="profile-avatar-large" id="profile-avatar-large">S</div><div><strong id="profile-greeting">Welcome to StudySprint</strong><p id="profile-status" role="status">Sign up to create a demo profile, or sign in to the saved demo profile on this browser.</p></div></div>
+            <div class="profile-controls" id="profile-controls">
+              <div class="profile-mode-tabs" role="group" aria-label="Demo profile mode"><button class="profile-mode profile-mode--active" type="button" data-profile-mode="signup">Sign up</button><button class="profile-mode" type="button" data-profile-mode="signin">Sign in</button></div>
+              <form class="profile-form" id="profile-form">
+                <label id="profile-name-label">Display name<input id="profile-name" type="text" maxlength="40" autocomplete="name" placeholder="Your name"></label>
+                <label>Email address<input id="profile-email" type="email" maxlength="120" autocomplete="email" placeholder="you@example.com" required></label>
+                <label>Password<input id="profile-password" type="password" minlength="8" autocomplete="new-password" placeholder="At least 8 characters" required></label>
+                <button class="schedule-submit" id="profile-submit" type="submit">Create account</button>
+              </form>
+              <button class="profile-signout" id="profile-signout" type="button" hidden>Sign out</button>
+            </div>
+          </div>
+          <p class="profile-note"><strong>Account security:</strong> Authentication and private data are managed by Supabase. Use a strong, unique password. Never place a Supabase service-role key in frontend code. Admin metrics remain personal to your account; this starter does not implement a privileged admin role.</p>
+        </section>
+
+        <section class="supercharger-zone page-section-view" id="superchargers" data-view="sprint" aria-labelledby="supercharger-heading">
+          <div class="supercharger-heading"><div><span class="supercharger-mark" aria-hidden="true">☷</span><h2 id="supercharger-heading">Cognitive Superchargers</h2></div><span class="supercharger-active"><strong id="supercharger-active-count">3</strong> Active</span></div>
+          <div class="supercharger-list">
+            <article class="supercharger-row">
+              <span class="supercharger-icon supercharger-icon--eye" aria-hidden="true">◎</span><div class="supercharger-copy"><h3>Bionic Reading Mode</h3><p>Make key phrases easier to scan while reviewing your tasks and lessons.</p></div>
+              <button class="super-toggle" type="button" role="switch" aria-label="Bionic Reading Mode" aria-checked="true" data-supercharger="bionic"><span></span></button>
+            </article>
+            <article class="supercharger-row supercharger-row--recall">
+              <span class="supercharger-icon supercharger-icon--recall" aria-hidden="true">✳</span><div class="supercharger-copy"><h3>Active Recall Injections</h3><p>Try a quick question before revealing the explanation.</p></div>
+              <button class="super-toggle" type="button" role="switch" aria-label="Active Recall Injections" aria-checked="true" data-supercharger="recall"><span></span></button>
+              <div class="recall-quiz" id="recall-quiz"><div><span class="recall-label">QUICK RECALL · CSS</span><p>What does <code>display: grid</code> help a parent element create?</p><div class="recall-answer" id="recall-answer" hidden>It creates a two-dimensional layout of rows and columns for its child elements.</div></div><button class="recall-reveal" id="recall-reveal" type="button" aria-expanded="false">Reveal answer</button></div>
+            </article>
+            <article class="supercharger-row">
+              <span class="supercharger-icon supercharger-icon--focus" aria-hidden="true">⌁</span><div class="supercharger-copy"><h3>Focus Lane</h3><p>Turn down decorative distractions and spotlight your sprint timer.</p></div>
+              <button class="super-toggle" type="button" role="switch" aria-label="Focus Lane" aria-checked="true" data-supercharger="focus"><span></span></button>
+            </article>
+          </div>
+          <p class="supercharger-footnote">Your preferences are saved in this browser and can be switched off at any time.</p>
+        </section>
+
+        <section class="stats-grid page-section-view" data-view="today" aria-label="Study statistics">
+          <article class="stat-card stat-card--streak"><div class="stat-icon stat-icon--orange">♨</div><div class="stat-copy"><span class="stat-label">Study streak</span><strong><span id="streak-count">0</span> <small id="streak-unit">days</small></strong><span class="stat-note" id="streak-note">Start a session to begin</span></div><div class="stat-spark" aria-hidden="true">✳</div></article>
+          <article class="stat-card"><div class="stat-icon stat-icon--green">◷</div><div class="stat-copy"><span class="stat-label">Focused this week</span><strong id="weekly-time">0 min</strong><span class="stat-note">Your time adds up</span></div><div class="stat-decoration" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div></article>
+          <article class="stat-card"><div class="stat-icon stat-icon--lavender">✓</div><div class="stat-copy"><span class="stat-label">Tasks completed</span><strong><span id="completed-count">0</span><small> / <span id="total-count">3</span></small></strong><span class="stat-note" id="task-stat-note">3 more to go</span></div><div class="stat-check" aria-hidden="true">✓</div></article>
+        </section>
+
+        <div class="notice" id="notice" role="status" hidden><span>✓</span><span id="notice-text"></span></div>
+
+        <section class="dashboard-grid" id="dashboard-grid">
+          <div class="left-column">
+            <article class="panel task-panel page-section-view" id="tasks" data-view="tasks">
+              <div class="panel-heading"><div><div class="section-kicker">YOUR PLAN · DAILY DIARY</div><h2>To Do diary <span class="task-total" id="task-total">3</span></h2><p class="panel-subtitle">Write down study, college, and self-care plans for your day.</p></div><button class="add-task-button" id="add-task-button" type="button" aria-expanded="false"><span>＋</span><span>New diary entry</span></button></div>
+              <div class="task-filters" role="group" aria-label="Filter diary entries"><button class="filter-button filter-button--active" type="button" data-filter="all">All <span id="filter-all-count">3</span></button><button class="filter-button" type="button" data-filter="open">To do <span id="filter-open-count">3</span></button><button class="filter-button" type="button" data-filter="done">Done <span id="filter-done-count">0</span></button></div>
+              <form class="add-task-form diary-form" id="add-task-form" hidden>
+                <input id="editing-task-id" type="hidden">
+                <label class="diary-title-field">What do you want to do?<input id="new-task-input" type="text" maxlength="90" placeholder="e.g. Review JavaScript for 30 minutes" aria-label="Diary entry title" required></label>
+                <label>Day<input id="new-task-date" type="date" required></label>
+                <label>Category<select id="new-task-category"><option>Study</option><option>Self-care</option><option>College</option><option>Personal</option></select></label>
+                <label class="diary-note-field">Diary note (optional)<textarea id="new-task-note" rows="2" maxlength="240" placeholder="Add a small reminder or how you want to feel…"></textarea></label>
+                <div class="diary-form-actions"><button class="schedule-submit" id="save-task-button" type="submit">Save diary entry</button><button class="diary-cancel" id="cancel-task-edit" type="button" hidden>Cancel edit</button></div>
+              </form>
+              <div class="task-list" id="task-list" aria-live="polite"></div>
+              <div class="task-footer"><span><span>✓</span> <span id="task-footer-label">0 of 3 tasks done</span></span><div class="task-progress"><span id="task-progress-fill"></span></div></div>
+            </article>
+
+            <article class="panel activity-panel page-section-view" id="progress" data-view="progress">
+              <div class="panel-heading activity-heading"><div><div class="section-kicker">YOUR MOMENTUM</div><h2>Daily performance</h2><p class="panel-subtitle">Focus minutes and tasks completed, day by day.</p></div><div class="activity-total"><strong id="chart-total">0 min</strong><span>total focus</span></div></div>
+              <div class="bar-chart" id="week-chart" role="img" aria-label="Focus minutes for the last seven days"></div>
+              <div class="chart-foot"><span class="chart-legends"><span><span class="legend-dot"></span> Focus minutes</span><span><span class="legend-task-dot"></span> Tasks done</span></span><span id="chart-caption">Complete a focus session or task and your week will appear here.</span></div>
+            </article>
+
+            <article class="panel timetable-panel page-section-view" id="timetable" data-view="timetable">
+              <div class="panel-heading"><div><div class="section-kicker">YOUR DAILY RHYTHM · GMT</div><h2>Daily timetable</h2><p class="panel-subtitle">Meals and study blocks, shown in GMT/UTC.</p></div><button class="add-task-button" id="add-event-button" type="button" aria-expanded="false"><span>＋</span><span>Add time</span></button></div>
+              <form class="schedule-form" id="schedule-form" hidden>
+                <input id="editing-event-id" type="hidden">
+                <label>Time (GMT)<input id="event-time" type="time" value="16:00" required></label>
+                <label>Activity<input id="event-title" type="text" maxlength="60" placeholder="e.g. Mathematics revision or take a walk" required></label>
+                <label>Type<select id="event-type"><option value="Study">Study</option><option value="Self-care">Self-care</option><option value="Breakfast">Breakfast</option><option value="Lunch">Lunch</option><option value="Dinner">Dinner</option><option value="Break">Break</option><option value="Other">Other</option></select></label>
+                <label class="reminder-choice"><input id="event-reminder" type="checkbox"> Remind me</label>
+                <div class="schedule-form-actions"><button class="schedule-submit" id="save-event-button" type="submit">Add to timetable</button><button class="diary-cancel" id="cancel-event-edit" type="button" hidden>Cancel edit</button></div>
+              </form>
+              <div class="schedule-list" id="schedule-list" aria-live="polite"></div>
+              <p class="schedule-note">Your timetable repeats daily in GMT/UTC. Use the circle to mark each activity complete. If a reminder is on, StudySprint alerts you at its time and nudges you again 15 minutes later if it is still unchecked. Allow notifications and keep this page open. Closed-app mobile push alerts need an installed app and push server, which this GitHub-friendly demo does not have.</p>
+            </article>
+
+            <article class="panel files-panel page-section-view" id="files" data-view="files">
+              <div class="panel-heading"><div><div class="section-kicker">YOUR DEVICE · LOCAL FILE VAULT</div><h2>Important files <span class="task-total" id="file-count">0</span></h2><p class="panel-subtitle">Select files from your PC or choose a folder.</p></div><span class="local-pill">This browser only</span></div>
+              <div class="file-picker-actions"><button class="add-task-button" id="choose-files" type="button">＋ Choose files</button><button class="add-task-button" id="choose-folder" type="button">▤ Choose folder</button></div>
+              <input id="file-picker" class="visually-hidden" type="file" multiple aria-label="Choose files from your computer">
+              <input id="folder-picker" class="visually-hidden" type="file" multiple webkitdirectory directory aria-label="Choose a folder from your computer">
+              <div class="file-storage-status" id="file-storage-status" role="status">Files are saved in this browser using local storage space. They are not uploaded.</div>
+              <div class="file-list" id="file-list" aria-live="polite"><div class="file-empty">No saved files yet. Choose files or a folder to start.</div></div>
+              <p class="schedule-note">The original PC files are not moved or changed. The app stores a local copy on this browser/device; it does not upload to GitHub or the cloud. Browser storage can be cleared. Avoid sensitive/private documents.</p>
+            </article>
+          </div>
+
+          <div class="right-column">
+            <article class="focus-card page-section-view" id="focus" data-view="focus">
+              <div class="focus-card-top"><span class="focus-badge"><span class="focus-live-dot"></span> FOCUS ROOM</span><button class="reset-button" id="reset-timer" type="button" aria-label="Reset timer">↻</button></div>
+              <h2>Find your<br><em>flow state.</em></h2><p class="focus-description">Settle in. One thing at a time.</p>
+              <div class="mode-tabs" role="group" aria-label="Timer mode"><button class="mode-tab mode-tab--active" type="button" data-mode="focus">ϟ <span>Focus</span></button><button class="mode-tab" type="button" data-mode="short">☕ <span>Short break</span></button><button class="mode-tab" type="button" data-mode="long">♧ <span>Long break</span></button></div>
+              <div class="timer-wrap"><svg class="timer-ring" viewBox="0 0 180 180" aria-hidden="true"><circle class="timer-ring-bg" cx="90" cy="90" r="77"></circle><circle class="timer-ring-progress" id="timer-ring-progress" cx="90" cy="90" r="77"></circle></svg><div class="timer-center"><span class="timer-time" id="timer-time">25:00</span><span class="timer-caption" id="timer-caption">READY WHEN YOU ARE</span></div></div>
+              <button class="timer-control" id="timer-control" type="button"><span id="timer-control-icon">▶</span><span id="timer-control-label">Start focusing</span></button>
+              <div class="focus-hint"><span class="hint-spark">✦</span> 25 minutes of focus. You’ve got this.</div>
+            </article>
+
+            <article class="inspiration-card page-section-view" data-view="focus"><div class="inspiration-copy"><span class="section-kicker">A LITTLE REMINDER</span><h3>Progress over<br>perfect.</h3><p>Show up as you are. That’s enough for today.</p></div><div class="inspiration-art" aria-hidden="true"><span class="art-sun"></span><span class="art-plant">♧</span><span class="art-book">▱</span><span class="art-cup">◔</span></div><div class="inspiration-stamp">✧</div></article>
+            <article class="daily-goal-card page-section-view" data-view="focus"><div class="daily-goal-icon">◎</div><div class="daily-goal-content"><div class="daily-goal-title">Your daily focus target</div><div class="daily-goal-subtitle" id="daily-goal-subtitle">0 of 120 focus minutes</div><div class="daily-progress-track"><span id="daily-progress-fill"></span></div></div><div class="goal-percent"><span id="daily-progress-percent">0</span><small>%</small></div><form class="goal-form" id="goal-form"><label for="goal-minutes">Set a target (15–600 min)</label><input id="goal-minutes" type="number" min="15" max="600" step="15" value="120" required><button type="submit">Save target</button></form></article>
+
+            <article class="panel alarm-panel page-section-view" id="alarm" data-view="alarm">
+              <div class="section-kicker">A GENTLE NUDGE · GMT</div>
+              <h2>Daily alarm</h2>
+              <p class="panel-subtitle">Set a time in GMT. Keep this page open for it to ring.</p>
+              <label class="alarm-time-label" for="alarm-time">Alarm time (GMT / UTC)</label>
+              <div class="alarm-controls"><input id="alarm-time" type="time" value="07:00"><button class="schedule-submit" id="set-alarm" type="button">Set alarm</button><button class="alarm-cancel" id="cancel-alarm" type="button" hidden>Cancel</button></div>
+              <div class="alarm-status" id="alarm-status" role="status">No alarm set.</div>
+              <div class="alarm-actions"><button class="sound-test" id="test-birds" type="button">♫ Test birdsong</button><button class="sound-test" id="stop-birds" type="button" hidden>■ Stop sound</button><button class="sound-test notification-button" id="enable-notifications" type="button">Enable pop-up reminders</button></div>
+              <p class="feature-note">The birdlike chime is generated by JavaScript; no audio file is needed. Browser alarm audio cannot run after the tab or browser is closed.</p>
+            </article>
+
+            <article class="panel helper-panel page-section-view" id="study-helper" data-view="study-helper">
+              <div class="section-kicker">BEGINNER STUDY BUDDY</div>
+              <h2>Need a simple explanation?</h2>
+              <p class="panel-subtitle">Ask about common HTML, CSS, JavaScript, or C basics. This offline helper uses prepared lessons, not live AI.</p>
+              <form class="helper-form" id="helper-form">
+                <label>Topic<select id="helper-subject"><option>JavaScript</option><option>C</option><option>HTML</option><option>CSS</option></select></label>
+                <label for="helper-question">What are you stuck on?<textarea id="helper-question" rows="3" maxlength="240" placeholder="Example: What is a for loop?" required></textarea></label>
+                <button class="schedule-submit" type="submit">Show me a simple explanation</button>
+              </form>
+              <div class="helper-answer" id="helper-answer" role="status" aria-live="polite"><strong>Your study buddy is ready</strong><p>Choose a topic and ask about a common beginner concept. Try “What is a loop?”</p><pre hidden></pre></div>
+            </article>
+
+            <article class="panel sleep-panel page-section-view" id="sleep" data-view="sleep">
+              <div class="section-kicker">REST IS PART OF THE PLAN · GMT</div>
+              <h2>Sleep session</h2>
+              <p class="panel-subtitle">Record when you sleep and when you wake.</p>
+              <div class="sleep-status" id="sleep-status" role="status">No sleep session running.</div>
+              <div class="sleep-last" id="sleep-last">Your last sleep duration will appear here.</div>
+              <div class="sleep-actions"><button class="sleep-start" id="start-sleep" type="button">☾ Start sleep</button><button class="sleep-end" id="end-sleep" type="button" hidden>☀ Wake up &amp; finish</button></div>
+              <p class="feature-note">Sleep duration is calculated from start and wake times, including overnight sessions.</p>
+            </article>
+
+            <article class="panel admin-panel page-section-view" id="admin" data-view="admin">
+              <div class="section-kicker">ADMIN PAGE · LOCAL DEMO</div>
+              <div class="admin-title-row"><div><h2>StudySprint overview</h2><p class="panel-subtitle">A personal dashboard for this browser only.</p></div><span class="demo-pill">No real admin permissions</span></div>
+              <div class="admin-metrics">
+                <div class="admin-metric"><span>Focus today</span><strong id="admin-today-focus">0 min</strong></div>
+                <div class="admin-metric"><span>Tasks done today</span><strong id="admin-today-tasks">0</strong></div>
+                <div class="admin-metric"><span>Focus, last 7 days</span><strong id="admin-week-focus">0 min</strong></div>
+                <div class="admin-metric"><span>Saved local files</span><strong id="admin-file-count">0</strong></div>
+                <div class="admin-metric"><span>Routine reminders</span><strong id="admin-reminder-count">0</strong></div>
+                <div class="admin-metric"><span>Next reminder</span><strong class="admin-next-reminder" id="admin-next-reminder">None set</strong></div>
+              </div>
+              <div class="admin-account-row"><span>Demo profile status</span><strong id="admin-profile-status">Signed out</strong></div>
+              <p class="feature-note">This page is not protected and does not manage other users. Real administrator permissions require a secure server and database; do not use the demo for private data.</p>
+            </article>
+          </div>
+        </section>
+
+        <footer class="page-footer"><span>Made for learning, one sprint at a time.</span><span>StudySprint <span class="footer-heart">✳</span></span></footer>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
+
+
+========================================================================================
+FILE: client/style.css
+========================================================================================
+[hidden] { display: none !important; }
+.checked-check { display: grid; place-items: center; height: 20px; width: 20px; border-radius: 50%; color: #fffefa; background: #7f9e7a; font-size: 12px; font-weight: 800; }
+* { box-sizing: border-box; }
+:root { --ease-out: cubic-bezier(.23, 1, .32, 1); }
+html { scroll-behavior: smooth; }
+body { margin: 0; min-width: 320px; background: #f7f7f2; color: #25342d; font-family: "DM Sans", sans-serif; }
+button { font: inherit; }
+button:not(:disabled), a[href], input:not(:disabled) { cursor: pointer; }
+::selection { background: #dce9dd; color: #214e3d; }
+.app-shell { min-height: 100vh; background: #f7f7f2; color: #25342d; }
+.sidebar { position: fixed; inset: 0 auto 0 0; width: 244px; padding: 31px 20px 22px; box-sizing: border-box; display: flex; flex-direction: column; border-right: 1px solid #e9ebe3; background: #f7f7f2; z-index: 5; }
+.brand { display: flex; align-items: center; gap: 11px; color: #25342d; text-decoration: none; margin: 0 0 51px 6px; }
+.brand-mark { height: 35px; width: 35px; border-radius: 12px; display: grid; place-items: center; background: #214e3d; color: #eaf0e8; box-shadow: 0 5px 12px #214e3d24; }
+.brand-name { font-size: 19px; font-weight: 700; letter-spacing: -1.1px; }
+.brand-name span { color: #e37f5b; }
+.side-label,.section-kicker,.eyebrow { color: #899389; font-size: 10px; font-weight: 800; letter-spacing: 1.4px; }
+.side-label { padding-left: 12px; margin-bottom: 14px; }
+.side-nav { display: grid; gap: 6px; }
+.nav-link { display: flex; align-items: center; gap: 13px; text-decoration: none; color: #778379; font-size: 13px; font-weight: 600; padding: 12px 12px; min-height: 44px; border-radius: 12px; transition: background .18s var(--ease-out), color .18s var(--ease-out), transform .16s var(--ease-out); }
+.nav-link:hover { background: #edf1e9; color: #214e3d; transform: translateX(2px); }
+.nav-link--active { color: #214e3d; background: #e9f0e8; font-weight: 700; }
+.nav-link--active svg { color: #315b45; }
+.nav-count { margin-left: auto; border-radius: 20px; min-width: 22px; text-align: center; padding: 2px 6px; background: #fffefa; color: #8a9589; font-size: 10px; }
+.sidebar-spacer { flex: 1; min-height: 40px; }
+.sidebar-goal { border-radius: 17px; background: #fffefa; padding: 16px 15px 14px; box-shadow: 0 8px 28px #354a3210; }
+.sidebar-goal-icon { display: grid; place-items: center; width: 29px; height: 29px; border-radius: 10px; color: #d97854; background: #fbede5; margin-bottom: 12px; }
+.sidebar-goal-title { font-size: 12px; font-weight: 700; margin: 0 0 4px; }
+.sidebar-goal-copy { font-size: 10px; color: #8b938a; margin: 0 0 13px; }
+.mini-progress,.daily-progress-track,.task-progress { height: 5px; overflow: hidden; border-radius: 9px; background: #edf0e9; }
+.mini-progress span,.daily-progress-track span,.task-progress span { display: block; height: 100%; border-radius: inherit; background: #e58a64; transition: width .25s var(--ease-out); }
+.goal-foot { display: flex; justify-content: space-between; margin-top: 8px; color: #889187; font-size: 9px; font-weight: 600; }
+.sidebar-note { display: flex; align-items: center; gap: 8px; color: #8a968c; font-size: 10px; padding: 19px 3px 0; }
+.sidebar-note svg { color: #789278; }
+.main-content { margin-left: 244px; min-height: 100vh; }
+.topbar { height: 73px; padding: 0 48px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e9ebe3; }
+.breadcrumb { display: flex; gap: 10px; align-items: center; font-size: 12px; color: #9aa198; }
+.breadcrumb-dot { color: #c6ccc1; }
+.breadcrumb strong { color: #394940; font-weight: 700; }
+.topbar-right { display: flex; gap: 14px; align-items: center; }
+.date-pill { color: #748177; display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 20px; border: 1px solid #e7eae2; background: #fbfbf7; font-size: 11px; font-weight: 600; }
+.online-dot,.focus-live-dot { display: inline-block; height: 6px; width: 6px; border-radius: 50%; background: #8aa989; }
+.avatar { display: grid; place-items: center; height: 34px; width: 34px; border-radius: 50%; background: #ebded0; color: #795843; font-family: "Fraunces", serif; font-size: 16px; }
+.page-wrap { max-width: 1510px; padding: 38px 48px 25px; margin: 0 auto; }
+.welcome-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 28px; }
+.eyebrow { display: flex; align-items: center; gap: 7px; color: #829083; margin-bottom: 11px; font-size: 9px; }
+.eyebrow svg { color: #df875f; }
+h1,h2,h3,p { margin-top: 0; }
+h1 { margin-bottom: 7px; font-size: clamp(32px, 3.2vw, 43px); line-height: 1.1; letter-spacing: -1.9px; font-weight: 700; color: #253b30; }
+h1 em,.focus-card h2 em { font-family: "Fraunces", serif; font-weight: 500; color: #d77c58; }
+.welcome-copy { color: #849087; font-size: 13px; margin-bottom: 0; }
+.primary-cta { display: inline-flex; align-items: center; gap: 11px; color: #fffefa; background: #214e3d; text-decoration: none; font-size: 12px; font-weight: 700; border-radius: 12px; padding: 13px 17px; box-shadow: 0 6px 14px #214e3d22; transition: transform .16s var(--ease-out), background .18s ease; white-space: nowrap; }
+.primary-cta:hover { background: #173e2e; transform: translateY(-2px); }
+.primary-cta:active,.add-task-button:active,.timer-control:active { transform: scale(.97); }
+.stats-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-bottom: 23px; }
+.stat-card { position: relative; min-height: 118px; overflow: hidden; display: flex; align-items: flex-start; gap: 13px; padding: 18px 18px; box-sizing: border-box; border-radius: 18px; background: #fffefa; box-shadow: 0 8px 28px #3448330b; }
+.stat-card--streak { background: #fffaf3; }
+.stat-icon { flex: 0 0 auto; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 12px; }
+.stat-icon--orange { color: #d47a49; background: #f8e8d7; }
+.stat-icon--green { color: #527451; background: #e8f0e5; }
+.stat-icon--lavender { color: #8673a1; background: #f0eaf7; }
+.stat-copy { display: grid; gap: 4px; position: relative; z-index: 1; }
+.stat-label { font-size: 10px; color: #849087; font-weight: 600; }
+.stat-copy strong { color: #304137; font-size: 21px; letter-spacing: -.8px; line-height: 1.05; }
+.stat-copy strong small { font-size: 12px; font-weight: 500; color: #899289; letter-spacing: 0; }
+.stat-note { font-size: 9px; color: #9aa198; }
+.stat-spark { position: absolute; right: 19px; bottom: -18px; color: #f5e8d7; font-size: 70px; line-height: 1; transform: rotate(-16deg); }
+.stat-decoration { position: absolute; right: 15px; bottom: 17px; height: 26px; display: flex; align-items: flex-end; gap: 4px; opacity: .75; }
+.stat-decoration span { width: 5px; border-radius: 5px; background: #dce8d8; }
+.stat-decoration span:nth-child(1) { height: 8px; }.stat-decoration span:nth-child(2) { height: 17px; }.stat-decoration span:nth-child(3) { height: 11px; }.stat-decoration span:nth-child(4) { height: 24px; }.stat-decoration span:nth-child(5) { height: 15px; }
+.stat-check { position: absolute; right: 18px; bottom: -15px; color: #f1edf7; font-size: 70px; font-family: "Fraunces", serif; }
+.notice { margin: -6px 0 17px; display: flex; align-items: center; gap: 9px; padding: 11px 14px; border-radius: 12px; color: #28573d; background: #eaf2e8; font-size: 12px; font-weight: 600; animation: rise-in .22s var(--ease-out); }
+.dashboard-grid { display: grid; grid-template-columns: minmax(0, 1.42fr) minmax(330px, .92fr); align-items: start; gap: 19px; }
+.left-column,.right-column { display: grid; gap: 18px; min-width: 0; }
+.panel { border-radius: 19px; padding: 23px 23px 19px; background: #fffefa; box-shadow: 0 8px 28px #3448330b; scroll-margin-top: 24px; }
+.panel-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 15px; }
+.section-kicker { font-size: 9px; margin-bottom: 8px; color: #98a094; }
+.panel-heading h2 { display: flex; align-items: center; gap: 9px; margin: 0 0 6px; color: #304137; font-size: 20px; letter-spacing: -.55px; }
+.task-total { display: grid; place-items: center; min-width: 21px; height: 21px; padding: 0 5px; border-radius: 7px; background: #f1f2ec; color: #899289; font-size: 10px; letter-spacing: 0; }
+.panel-subtitle { margin-bottom: 0; color: #97a097; font-size: 10px; }
+.add-task-button { display: flex; align-items: center; gap: 5px; border: 1px solid #e5e9e1; border-radius: 10px; background: #fffefa; color: #3c5d46; padding: 9px 11px; font-size: 10px; font-weight: 700; transition: all .18s var(--ease-out); }
+.add-task-button:hover { border-color: #bdceba; background: #f6f8f3; }
+.task-filters { display: flex; gap: 7px; border-bottom: 1px solid #eff0eb; margin-top: 19px; }
+.filter-button { position: relative; display: flex; align-items: center; gap: 7px; border: 0; background: transparent; color: #9aa198; font-size: 10px; padding: 0 8px 11px; font-weight: 600; }
+.filter-button span { border-radius: 9px; background: #f1f2ed; color: #9aa198; padding: 2px 5px; font-size: 9px; }
+.filter-button--active { color: #31543f; }
+.filter-button--active::after { position: absolute; content: ""; height: 2px; bottom: -1px; left: 8px; right: 8px; background: #527c5b; border-radius: 3px; }
+.filter-button--active span { color: #557250; background: #e9f0e7; }
+.add-task-form { display: flex; gap: 7px; margin-top: 13px; }
+.add-task-form input { min-width: 0; flex: 1; border: 1px solid #dfe7dc; outline: none; border-radius: 9px; background: #fbfcf8; padding: 10px 12px; color: #34443a; font: inherit; font-size: 11px; }
+.add-task-form input:focus { border-color: #89a686; box-shadow: 0 0 0 3px #89a68621; }
+.add-task-form input::placeholder { color: #abb3aa; }
+.add-task-form button { width: 38px; border: 0; border-radius: 9px; background: #214e3d; color: white; display: grid; place-items: center; }
+.task-list { min-height: 155px; }
+.task-row { display: flex; align-items: center; gap: 11px; min-height: 55px; border-bottom: 1px solid #f0f1ec; animation: rise-in .2s var(--ease-out); }
+.task-check { display: grid; place-items: center; padding: 0; border: 0; background: transparent; color: #789278; }
+.empty-check { width: 19px; height: 19px; border: 1.5px solid #cbd4c8; border-radius: 50%; transition: background .15s, border .15s; }
+.task-check:hover .empty-check { border-color: #6e9473; background: #eef4ec; }
+.task-detail { min-width: 0; flex: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 7px 9px; }
+.task-title { color: #4a574d; font-size: 11px; font-weight: 600; line-height: 1.4; }
+.task-row--done .task-title { text-decoration: line-through; color: #a4aca2; }
+.subject-chip { white-space: nowrap; border-radius: 6px; padding: 3px 6px; font-size: 8px; line-height: 1.2; font-weight: 700; color: #53724f; background: #edf3e9; }
+.subject-chip--pink { background: #f8e9e7; color: #b67568; }.subject-chip--gold { background: #f7f0df; color: #aa8751; }.subject-chip--blue { background: #e8eef6; color: #6683a0; }
+.task-order { color: #c0c7be; font-family: "Fraunces", serif; font-size: 11px; }
+.delete-task { display: grid; place-items: center; border: 0; background: transparent; color: #b5bcb3; padding: 7px; opacity: 0; transition: color .15s, opacity .15s; }
+.task-row:hover .delete-task,.delete-task:focus-visible { opacity: 1; }.delete-task:hover { color: #c65b49; }
+.empty-tasks { display: flex; align-items: center; justify-content: center; gap: 10px; color: #98a196; min-height: 145px; font-size: 11px; text-align: center; padding: 10px 20px; }.empty-tasks svg { color: #b0bea9; flex: 0 0 auto; }
+.task-footer { display: flex; align-items: center; gap: 12px; padding-top: 15px; color: #8a958b; font-size: 9px; }.task-footer > span { display: flex; align-items: center; gap: 6px; white-space: nowrap; }.task-footer svg { color: #81a17b; }.task-progress { flex: 1; height: 4px; }
+.activity-panel { padding-bottom: 16px; }
+.activity-total { display: grid; gap: 3px; text-align: right; }.activity-total strong { color: #486344; font-size: 17px; letter-spacing: -.4px; }.activity-total span { color: #9aa198; font-size: 9px; }
+.bar-chart { display: flex; align-items: stretch; justify-content: space-around; gap: 11px; height: 118px; padding: 11px 4px 0; margin-top: 14px; border-bottom: 1px solid #eff0eb; }
+.chart-day { position: relative; flex: 1; display: flex; align-items: center; flex-direction: column; gap: 7px; }
+.bar-track { display: flex; align-items: flex-end; justify-content: center; width: 100%; height: 85px; }
+.bar-fill { display: block; width: min(25px, 75%); min-height: 3px; border-radius: 6px 6px 3px 3px; background: #dfe9dc; transition: height .25s var(--ease-out), background .2s; }
+.chart-day:hover .bar-fill { background: #a9c4a4; }.chart-day--today .bar-fill { background: #e79570; }
+.bar-label { color: #9aa198; font-size: 9px; text-transform: uppercase; }.chart-day--today .bar-label { color: #d3825e; font-weight: 800; }
+.today-marker { position: absolute; bottom: -20px; color: #ce8866; font-size: 7px; text-transform: uppercase; letter-spacing: .4px; }
+.chart-foot { display: flex; justify-content: space-between; gap: 12px; padding-top: 15px; color: #9aa198; font-size: 9px; }.chart-foot > span:first-child { display: flex; align-items: center; gap: 6px; white-space: nowrap; }.legend-dot { height: 7px; width: 7px; border-radius: 50%; background: #e79570; }
+.focus-card { position: relative; overflow: hidden; scroll-margin-top: 22px; border-radius: 20px; padding: 20px 21px 16px; color: #fffefa; background: #1d4737; box-shadow: 0 12px 28px #1d47371c; }
+.focus-card::before,.focus-card::after { position: absolute; content: ""; border-radius: 50%; pointer-events: none; }
+.focus-card::before { width: 290px; height: 290px; top: -166px; right: -114px; border: 1px solid #ffffff0d; box-shadow: 0 0 0 22px #ffffff05,0 0 0 47px #ffffff04; }
+.focus-card::after { width: 180px; height: 180px; bottom: -139px; left: -101px; border: 1px solid #ffffff10; box-shadow: 0 0 0 17px #ffffff05; }
+.focus-card > * { position: relative; z-index: 1; }
+.focus-card-top { display: flex; align-items: center; justify-content: space-between; }
+.focus-badge { display: inline-flex; align-items: center; gap: 7px; color: #d9e7d7; font-size: 8px; font-weight: 800; letter-spacing: 1.1px; }
+.focus-live-dot { background: #b6d29d; box-shadow: 0 0 0 3px #b6d29d21; }
+.reset-button { display: grid; place-items: center; height: 29px; width: 29px; border: 1px solid #ffffff20; border-radius: 9px; background: #ffffff0b; color: #c6d6c7; transition: background .18s, transform .16s; }.reset-button:hover { background: #ffffff18; transform: rotate(-25deg); }
+.focus-card h2 { margin: 13px 0 3px; color: #fffefa; font-size: 22px; line-height: 1.1; letter-spacing: -.7px; }.focus-card h2 em { color: #e79c76; }
+.focus-description { margin-bottom: 14px; color: #c2d1c3; font-size: 10px; }
+.mode-tabs { display: flex; gap: 4px; padding: 4px; border-radius: 10px; background: #153b2d; }
+.mode-tab { flex: 1; display: flex; justify-content: center; align-items: center; gap: 5px; border: 0; border-radius: 7px; padding: 7px 4px; color: #acc0b1; background: transparent; font-size: 8px; font-weight: 600; transition: background .16s, color .16s; white-space: nowrap; }
+.mode-tab:hover { color: #f4f7f0; }.mode-tab--active { color: #234934; background: #e9efe3; box-shadow: 0 2px 5px #0f302515; }
+.timer-wrap { position: relative; display: grid; place-items: center; margin: 10px auto 9px; width: 180px; height: 180px; }
+.timer-ring { width: 180px; height: 180px; transform: rotate(-90deg); overflow: visible; }
+.timer-ring-bg,.timer-ring-progress { fill: none; stroke-width: 4; }
+.timer-ring-bg { stroke: #ffffff1d; }.timer-ring-progress { stroke: #e9aa83; stroke-linecap: round; stroke-dasharray: 483.8; transition: stroke-dashoffset .5s linear; }
+.timer-center { position: absolute; display: flex; align-items: center; flex-direction: column; gap: 5px; }
+.timer-time { font-size: 40px; letter-spacing: -1.8px; font-variant-numeric: tabular-nums; font-weight: 500; color: #fffefa; }
+.timer-caption { color: #bfd0bd; font-size: 7px; font-weight: 800; letter-spacing: 1.1px; }
+.timer-control { display: flex; align-items: center; justify-content: center; gap: 9px; width: 100%; border: 0; border-radius: 11px; background: #f2eee2; color: #284c36; padding: 12px; font-size: 11px; font-weight: 800; transition: transform .16s var(--ease-out), background .18s; }.timer-control:hover { background: #fffefa; }
+.focus-hint { display: flex; align-items: center; justify-content: center; gap: 6px; color: #b9cbb9; padding-top: 12px; font-size: 9px; }.hint-spark { color: #e5a87f; }
+.inspiration-card { position: relative; display: flex; min-height: 148px; align-items: center; overflow: hidden; border-radius: 19px; background: #f1eee4; box-shadow: 0 8px 28px #3448330b; }
+.inspiration-copy { position: relative; z-index: 1; align-self: flex-start; padding: 20px 0 16px 19px; width: 59%; }
+.inspiration-copy .section-kicker { color: #939589; font-size: 8px; }
+.inspiration-copy h3 { margin: 0 0 5px; color: #35463a; font-family: "Fraunces", serif; font-size: 20px; font-weight: 500; line-height: 1.08; letter-spacing: -.3px; }
+.inspiration-copy p { margin: 0; max-width: 180px; color: #81887c; font-size: 9px; line-height: 1.5; }
+.inspiration-card img { position: absolute; right: -1px; bottom: -4px; width: 52%; height: 99%; object-fit: cover; object-position: 51% 52%; mix-blend-mode: multiply; mask-image: linear-gradient(to right, transparent, black 23%); }
+.inspiration-stamp { position: absolute; right: 13px; top: 12px; display: grid; place-items: center; width: 27px; height: 27px; border-radius: 50%; background: #fffdf8; color: #d58360; box-shadow: 0 2px 7px #55531611; }
+.daily-goal-card { display: flex; align-items: center; gap: 12px; padding: 14px 15px; background: #fffefa; border-radius: 16px; box-shadow: 0 8px 28px #3448330b; }
+.daily-goal-icon { display: grid; place-items: center; flex: 0 0 auto; width: 35px; height: 35px; border-radius: 11px; color: #56744e; background: #eaf0e5; }
+.daily-goal-content { flex: 1; min-width: 0; }.daily-goal-title { color: #48574a; font-size: 10px; font-weight: 700; margin-bottom: 4px; }.daily-goal-subtitle { color: #9ba297; font-size: 8px; margin-bottom: 7px; }.daily-progress-track { height: 4px; }.daily-progress-track span { background: #8ca78a; }
+.goal-percent { color: #56744e; font-size: 15px; font-weight: 700; letter-spacing: -.4px; }.goal-percent small { font-size: 8px; font-weight: 600; }
+.page-footer { display: flex; justify-content: space-between; color: #a0a79d; padding: 22px 2px 0; font-size: 9px; }.footer-heart { color: #dc8a67; padding-left: 3px; }
+@keyframes rise-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+@media (min-width: 1600px) { .page-wrap { padding-left: 58px; padding-right: 58px; } }
+@media (max-width: 1160px) { .sidebar { width: 218px; padding-left: 15px; padding-right: 15px; }.main-content { margin-left: 218px; }.topbar { padding: 0 30px; }.page-wrap { padding: 33px 30px 24px; }.dashboard-grid { grid-template-columns: minmax(0,1.2fr) minmax(300px,.9fr); gap: 15px; }.panel { padding-left: 18px; padding-right: 18px; } }
+@media (max-width: 900px) { .sidebar { position: static; width: auto; height: auto; padding: 12px 20px; flex-direction: row; align-items: center; border-right: 0; border-bottom: 1px solid #e9ebe3; }.brand { margin: 0; }.brand-mark { width: 32px; height: 32px; }.brand-name { font-size: 17px; }.side-label,.sidebar-spacer,.sidebar-goal,.sidebar-note { display: none; }.side-nav { display: flex; gap: 3px; margin-left: auto; }.nav-link { gap: 7px; padding: 9px 10px; min-height: auto; font-size: 10px; }.nav-count { display: none; }.main-content { margin-left: 0; }.topbar { height: 58px; }.page-wrap { max-width: 790px; }.dashboard-grid { grid-template-columns: minmax(0,1.2fr) minmax(275px,.8fr); }.stats-grid { gap: 10px; }.stat-card { padding: 15px 12px; gap: 9px; }.stat-icon { width: 31px; height: 31px; }.stat-copy strong { font-size: 18px; } }
+@media (max-width: 700px) { .sidebar { padding: 11px 13px; }.brand { gap: 8px; }.brand-mark { width: 30px; height: 30px; border-radius: 10px; }.brand-name { font-size: 15px; }.side-nav { gap: 2px; }.nav-link { padding: 8px 9px; }.nav-link span { display: none; }.nav-link svg { width: 17px; height: 17px; }.topbar { padding: 0 18px; }.date-pill { font-size: 9px; padding: 7px 9px; }.avatar { height: 30px; width: 30px; }.breadcrumb { font-size: 10px; }.page-wrap { padding: 29px 17px 20px; }.welcome-row { align-items: flex-start; flex-direction: column; gap: 15px; margin-bottom: 20px; }.welcome-row h1 { font-size: 35px; }.welcome-copy { font-size: 12px; }.primary-cta { padding: 11px 13px; font-size: 11px; }.stats-grid { grid-template-columns: 1fr 1fr; gap: 9px; }.stat-card { min-height: 100px; padding: 13px 11px; border-radius: 15px; }.stat-card:last-child { grid-column: 1 / -1; min-height: 84px; }.stat-label { font-size: 9px; }.stat-copy strong { font-size: 17px; }.stat-note { font-size: 8px; }.stat-decoration { right: 12px; bottom: 12px; }.dashboard-grid { grid-template-columns: 1fr; gap: 14px; }.left-column,.right-column { gap: 14px; }.right-column { grid-row: 1; }.focus-card { padding: 19px 19px 16px; }.focus-card h2 { font-size: 24px; }.timer-wrap { margin-top: 7px; margin-bottom: 7px; }.inspiration-card { min-height: 145px; }.panel { padding: 19px 16px 16px; }.panel-heading h2 { font-size: 18px; }.panel-subtitle { font-size: 9px; }.add-task-button { padding: 8px 9px; font-size: 9px; }.task-row { gap: 8px; }.task-title { font-size: 10px; }.task-order { display: none; }.delete-task { opacity: 1; }.activity-heading { align-items: center; }.chart-foot { flex-direction: column; gap: 7px; }.page-footer { gap: 10px; font-size: 8px; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
+
+/* New StudySprint features: GMT alarm, timetable, and sleep log */
+.gmt-tag { color: #527451; font-size: 8px; font-weight: 800; letter-spacing: .5px; padding: 3px 5px; border-radius: 5px; background: #e9f0e7; }
+.timetable-panel,.alarm-panel,.sleep-panel { scroll-margin-top: 24px; }
+.timetable-panel h2,.alarm-panel h2,.sleep-panel h2 { margin: 0 0 6px; color: #304137; font-size: 20px; letter-spacing: -.55px; }
+.schedule-form { display: grid; grid-template-columns: .8fr 1.5fr .8fr auto; align-items: end; gap: 9px; padding: 14px; margin: 15px 0 12px; border: 1px solid #edf0e9; border-radius: 13px; background: #fbfcf8; }
+.schedule-form label { display: grid; gap: 6px; color: #7d897f; font-size: 9px; font-weight: 700; }
+.schedule-form input,.schedule-form select,.alarm-time-label + input,.alarm-controls input { width: 100%; min-width: 0; padding: 9px 10px; border: 1px solid #e1e7dd; border-radius: 8px; outline: none; background: #fffefa; color: #38483d; font: inherit; font-size: 10px; }
+.schedule-form input:focus,.schedule-form select:focus,.alarm-controls input:focus { border-color: #89a686; box-shadow: 0 0 0 3px #89a68621; }
+.schedule-submit { border: 0; border-radius: 9px; padding: 10px 12px; background: #214e3d; color: #fffefa; font-size: 10px; font-weight: 700; transition: background .15s, transform .15s; white-space: nowrap; }
+.schedule-submit:hover { background: #173e2e; }
+.schedule-submit:active,.sleep-start:active,.sleep-end:active { transform: scale(.97); }
+.schedule-list { margin-top: 15px; }
+.schedule-row { position: relative; display: grid; grid-template-columns: 75px 10px minmax(0, 1fr) 28px; align-items: center; gap: 10px; min-height: 53px; border-bottom: 1px solid #f0f1ec; }
+.schedule-row:last-child { border-bottom: 0; }
+.schedule-row--next { background: linear-gradient(90deg, #f3f6ef, transparent 83%); }
+.schedule-time { color: #52674f; font-size: 10px; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.schedule-marker { width: 8px; height: 8px; border-radius: 50%; background: #86a17f; box-shadow: 0 0 0 3px #edf2e9; }
+.schedule-marker--break { background: #d59d65; box-shadow: 0 0 0 3px #f6eee1; }
+.schedule-marker--lunch,.schedule-marker--dinner,.schedule-marker--breakfast { background: #d98966; box-shadow: 0 0 0 3px #faeee6; }
+.schedule-description { min-width: 0; display: grid; gap: 4px; }
+.schedule-description strong { overflow: hidden; color: #4a574d; font-size: 10px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.schedule-kind { color: #98a196; font-size: 8px; }
+.schedule-row--next .schedule-kind { color: #6e8b68; font-weight: 800; }
+.schedule-delete { width: 25px; height: 25px; border: 0; border-radius: 7px; background: transparent; color: #aeb7ac; font-size: 17px; opacity: 0; transition: opacity .15s, color .15s, background .15s; }
+.schedule-row:hover .schedule-delete,.schedule-delete:focus-visible { opacity: 1; }
+.schedule-delete:hover { color: #c65b49; background: #faeeeb; }
+.schedule-empty { padding: 20px 12px; color: #929b90; font-size: 10px; text-align: center; }
+.schedule-note { margin: 12px 0 0; color: #98a196; font-size: 8px; line-height: 1.5; }
+.alarm-time-label { display: block; margin: 15px 0 7px; color: #758176; font-size: 9px; font-weight: 700; }
+.alarm-controls { display: flex; align-items: center; gap: 8px; }
+.alarm-controls input { max-width: 125px; font-size: 12px; font-weight: 700; }
+.alarm-status,.sleep-status { margin: 11px 0 9px; padding: 9px 10px; border-radius: 9px; background: #f3f5ef; color: #56704f; font-size: 9px; line-height: 1.5; }
+.alarm-cancel { border: 1px solid #ead9d4; border-radius: 9px; padding: 9px 11px; background: #fff9f7; color: #ad6653; font-size: 9px; font-weight: 700; }
+.alarm-actions { display: flex; flex-wrap: wrap; gap: 7px; }
+.sound-test { border: 1px solid #e7ebe3; border-radius: 8px; padding: 7px 9px; background: #fffefa; color: #52674f; font-size: 9px; font-weight: 700; }
+.sound-test:hover { background: #f4f7f1; }
+.notification-button { color: #84739b; }
+.feature-note { margin: 11px 0 0; color: #9ba297; font-size: 8px; line-height: 1.55; }
+.sleep-status { background: #f3f0f8; color: #766488; }
+.sleep-last { min-height: 28px; color: #879187; font-size: 9px; line-height: 1.5; }
+.sleep-actions { display: flex; gap: 8px; margin-top: 10px; }
+.sleep-start,.sleep-end { border: 0; border-radius: 9px; padding: 9px 12px; background: #e9e2f1; color: #6d587f; font-size: 10px; font-weight: 800; transition: transform .15s, background .15s; }
+.sleep-start:hover,.sleep-end:hover { background: #dfd4eb; }
+.sleep-end { background: #e9f0e7; color: #486344; }
+.sleep-end:hover { background: #dce9d9; }
+@media (max-width: 900px) { .schedule-form { grid-template-columns: 1fr 1.4fr; }.schedule-form .schedule-submit { grid-column: 1 / -1; } }
+@media (max-width: 700px) {
+  .nav-link .nav-symbol { display: inline; }
+  .schedule-form { grid-template-columns: 1fr 1fr; gap: 9px; padding: 11px; }
+  .schedule-form label:nth-child(2) { grid-column: 1 / -1; }
+  .schedule-form .schedule-submit { grid-column: 1 / -1; }
+  .schedule-row { grid-template-columns: 66px 8px minmax(0, 1fr) 26px; gap: 7px; }
+  .schedule-time { font-size: 9px; }
+  .schedule-description strong { font-size: 9px; }
+  .schedule-delete { opacity: 1; }
+  .alarm-controls { flex-wrap: wrap; }
+  .alarm-controls input { flex: 1; }
+  .alarm-actions { gap: 5px; }
+  .sound-test { padding: 7px 8px; font-size: 8px; }
+  .timetable-panel h2,.alarm-panel h2,.sleep-panel h2 { font-size: 18px; }
+}
+
+/* Small decorative desk illustration made from CSS: the project needs no image file. */
+.inspiration-art { position: absolute; inset: 0 0 0 auto; width: 51%; overflow: hidden; background: radial-gradient(ellipse at 66% 26%, #e4c88d 0 12%, transparent 12.5%), radial-gradient(ellipse at 76% 72%, #e4d8bf 0 34%, transparent 34.5%); }
+.inspiration-art::before { content: ""; position: absolute; right: -12px; bottom: -14px; width: 145px; height: 42px; border-radius: 50% 20% 0 0; background: #c7b99d; transform: rotate(-8deg); }
+.art-sun { position: absolute; top: 20px; right: 45px; width: 49px; height: 49px; border-radius: 50%; background: #f3e4b9; }
+.art-plant { position: absolute; right: 21px; top: 16px; color: #70906f; font-size: 50px; transform: rotate(-20deg); text-shadow: -13px 6px 0 #89a47b, 9px 13px 0 #557756; }
+.art-book { position: absolute; left: 4px; bottom: 14px; z-index: 1; color: #fbf8ef; font-size: 64px; line-height: .7; text-shadow: 0 4px 0 #c0af92, 0 7px 0 #e4d8c2; transform: rotate(-8deg); }
+.art-cup { position: absolute; right: 62px; bottom: 22px; z-index: 2; display: grid; place-items: center; width: 28px; height: 24px; border-radius: 5px 5px 10px 10px; background: #d78a68; color: #f5e9d8; font-size: 16px; box-shadow: 0 5px 0 #b56b50; }
+@media (max-width: 700px) { .inspiration-art { width: 48%; } }
+
+
+/* Daily target controls, timetable reminders, and offline study helper */
+.daily-goal-card { flex-wrap: wrap; }
+.goal-form { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 8px; width: 100%; padding-top: 10px; border-top: 1px solid #eff0eb; }
+.goal-form label,.helper-form label { color: #758176; font-size: 9px; font-weight: 700; }
+.goal-form input { width: 76px; padding: 8px; border: 1px solid #e1e7dd; border-radius: 8px; background: #fffefa; color: #38483d; font: inherit; font-size: 10px; }
+.goal-form button { border: 0; border-radius: 8px; padding: 8px 10px; background: #e9f0e7; color: #486344; font-size: 9px; font-weight: 800; }
+.reminder-choice { display: flex !important; align-items: center; gap: 7px !important; min-height: 34px; }
+.reminder-choice input { width: 15px !important; min-width: 15px !important; accent-color: #527c5b; }
+.schedule-row { grid-template-columns: 75px 10px minmax(0, 1fr) auto 28px; }
+.schedule-reminder { border: 1px solid #e7ebe3; border-radius: 8px; padding: 6px 8px; background: #fffefa; color: #829083; font-size: 8px; font-weight: 700; white-space: nowrap; }
+.schedule-reminder--on { border-color: #d8e6d3; background: #edf4e9; color: #55744f; }
+.helper-panel h2 { margin: 0 0 7px; color: #304137; font-size: 20px; letter-spacing: -.55px; }
+.helper-form { display: grid; gap: 10px; margin-top: 15px; }
+.helper-form label { display: grid; gap: 6px; }
+.helper-form select,.helper-form textarea { width: 100%; min-width: 0; padding: 10px 11px; border: 1px solid #e1e7dd; border-radius: 9px; outline: none; background: #fffefa; color: #38483d; font: inherit; font-size: 10px; }
+.helper-form textarea { resize: vertical; line-height: 1.5; }
+.helper-form select:focus,.helper-form textarea:focus { border-color: #89a686; box-shadow: 0 0 0 3px #89a68621; }
+.helper-answer { margin-top: 13px; padding: 13px; border-radius: 12px; background: #f3f6ef; color: #52674f; }
+.helper-answer strong { display: block; margin-bottom: 6px; color: #365541; font-size: 11px; }
+.helper-answer p { margin: 0; font-size: 10px; line-height: 1.6; }
+.helper-answer pre { overflow-x: auto; margin: 10px 0 0; padding: 11px; border-radius: 9px; background: #1d4737; color: #eff5e9; font: 10px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; }
+@media (max-width: 900px) {
+  .side-nav { overflow-x: auto; scrollbar-width: none; }
+  .side-nav::-webkit-scrollbar { display: none; }
+  .nav-link { flex: 0 0 auto; }
+  .schedule-form { grid-template-columns: 1fr 1.4fr; }
+  .schedule-form .schedule-submit { grid-column: 1 / -1; }
+  .schedule-row { grid-template-columns: 68px 8px minmax(0, 1fr) auto 25px; gap: 7px; }
+}
+@media (max-width: 700px) {
+  .schedule-form { grid-template-columns: 1fr 1fr; gap: 9px; padding: 11px; }
+  .schedule-form label:nth-child(2) { grid-column: 1 / -1; }
+  .schedule-form .schedule-submit { grid-column: 1 / -1; }
+  .schedule-row { grid-template-columns: 59px 8px minmax(0, 1fr) auto 24px; gap: 5px; }
+  .schedule-time { font-size: 8px; }
+  .schedule-reminder { padding: 5px; font-size: 7px; }
+  .schedule-delete { opacity: 1; }
+  .goal-form { grid-template-columns: 1fr auto; }
+  .goal-form label { grid-column: 1 / -1; }
+}
+
+
+/* Local-only profile, PC files, daily performance and demo admin additions */
+.profile-panel { margin: 0 0 22px; padding: 19px 21px 16px; }
+.profile-heading,.admin-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.profile-heading h2,.admin-title-row h2,.files-panel h2 { margin: 0 0 5px; color: #304137; font-size: 18px; letter-spacing: -.45px; }
+.demo-pill,.local-pill { display: inline-flex; align-items: center; flex: 0 0 auto; border-radius: 99px; padding: 6px 9px; background: #f8eee1; color: #a46d39; font-size: 8px; font-weight: 800; }
+.local-pill { background: #e9f0e7; color: #55744f; }
+.profile-content { display: grid; grid-template-columns: minmax(190px, .8fr) minmax(280px, 1.2fr); align-items: center; gap: 22px; margin-top: 15px; }
+.profile-intro { display: flex; align-items: center; gap: 11px; min-width: 0; }
+.profile-avatar-large { display: grid; place-items: center; flex: 0 0 auto; height: 43px; width: 43px; border-radius: 14px; background: #eaf0e5; color: #527451; font-family: "Fraunces",serif; font-size: 21px; }
+.profile-intro strong { display: block; color: #405345; font-size: 11px; margin-bottom: 4px; }
+.profile-intro p { margin: 0; color: #929b91; font-size: 9px; line-height: 1.5; }
+.profile-mode-tabs { display: inline-flex; gap: 4px; margin-bottom: 8px; padding: 3px; border-radius: 9px; background: #f1f3ed; }
+.profile-mode { border: 0; border-radius: 7px; padding: 6px 10px; background: transparent; color: #8b968b; font-size: 9px; font-weight: 700; }
+.profile-mode--active { background: #fffefa; color: #31543f; box-shadow: 0 1px 4px #34483312; }
+.profile-form { display: grid; grid-template-columns: 1fr 1fr auto; align-items: end; gap: 8px; }
+.profile-form label { display: grid; gap: 5px; color: #748176; font-size: 8px; font-weight: 700; }
+.profile-form input { width: 100%; min-width: 0; border: 1px solid #e1e7dd; border-radius: 8px; padding: 9px; background: #fffefa; color: #34443a; font: inherit; font-size: 9px; }
+.profile-form input:focus { outline: 2px solid #89a68650; border-color: #89a686; }
+.profile-form .schedule-submit { min-height: 33px; }
+.profile-signout { border: 1px solid #e5e9e1; border-radius: 9px; padding: 8px 11px; background: #fffefa; color: #52674f; font-size: 9px; font-weight: 700; }
+.profile-note { margin: 13px 0 0; color: #9b8b77; font-size: 8px; line-height: 1.55; }
+.profile-note strong { color: #9d6d43; }
+.chart-legends { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.chart-legends > span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.legend-task-dot { display: inline-block; height: 7px; width: 7px; border-radius: 2px; background: #89a779; }
+.bar-track { gap: 3px; }
+.bar-fill,.bar-task-fill { flex: 1 1 0; width: auto; max-width: 22px; min-width: 4px; }
+.bar-task-fill { display: block; align-self: flex-end; min-height: 3px; border-radius: 5px 5px 2px 2px; background: #89a779; opacity: .92; transition: height .25s var(--ease-out); }
+.file-picker-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.visually-hidden { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip: rect(0,0,0,0) !important; white-space: nowrap !important; border: 0 !important; }
+.file-storage-status { margin: 12px 0 7px; padding: 9px 10px; border-radius: 9px; background: #f4f6ef; color: #687c61; font-size: 9px; line-height: 1.5; }
+.file-storage-status--error { background: #faeeeb; color: #a45e50; }
+.file-list { display: grid; }
+.file-row { display: grid; grid-template-columns: 32px minmax(0,1fr) auto auto; align-items: center; gap: 9px; min-height: 51px; border-bottom: 1px solid #f0f1ec; }
+.file-icon { display: grid; place-items: center; width: 29px; height: 29px; border-radius: 9px; background: #edf2e9; color: #577550; font-size: 14px; }
+.file-meta { min-width: 0; display: grid; gap: 3px; }
+.file-meta strong { overflow: hidden; color: #4a574d; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.file-meta span { overflow: hidden; color: #9aa198; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.file-size { color: #98a196; font-size: 8px; white-space: nowrap; }
+.file-action { border: 0; border-radius: 7px; padding: 6px 7px; background: transparent; color: #587450; font-size: 8px; font-weight: 700; }
+.file-action:hover { background: #edf3e9; }.file-action--delete { color: #af7062; }
+.file-action--delete:hover { background: #faeeeb; }
+.file-empty { padding: 18px 10px; color: #98a196; font-size: 9px; text-align: center; }
+.admin-panel { scroll-margin-top: 24px; }
+.admin-title-row { align-items: center; margin-bottom: 14px; }
+.admin-title-row .demo-pill { white-space: normal; text-align: center; }
+.admin-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.admin-metric { display: grid; gap: 6px; padding: 11px; border-radius: 11px; background: #f7f8f3; }
+.admin-metric span { color: #909b90; font-size: 8px; }
+.admin-metric strong { color: #385641; font-size: 13px; font-variant-numeric: tabular-nums; }
+.admin-metric .admin-next-reminder { font-size: 10px; }
+.admin-account-row { display: flex; justify-content: space-between; gap: 10px; margin-top: 11px; padding: 10px 11px; border: 1px solid #edf0e9; border-radius: 10px; color: #89938a; font-size: 9px; }
+.admin-account-row strong { color: #536c4e; }
+@media (max-width: 900px) { .profile-content { grid-template-columns: 1fr; gap: 13px; }.profile-form { grid-template-columns: 1fr 1fr auto; } }
+@media (max-width: 700px) { .profile-panel { padding: 16px; }.profile-heading,.admin-title-row { align-items: flex-start; flex-direction: column; }.profile-form { grid-template-columns: 1fr 1fr; }.profile-form .schedule-submit { grid-column: 1 / -1; }.profile-form label:first-child { grid-column: 1 / -1; }.file-row { grid-template-columns: 28px minmax(0,1fr) auto; gap: 6px; }.file-row .file-size { display: none; }.file-action { padding: 6px; }.admin-metrics { gap: 6px; }.admin-metric { padding: 9px; }.chart-legends { gap: 8px; } }
+
+
+/* Stitch-inspired background: charcoal canvas, dotted grid, and restrained neon glow */
+:root {
+  --stitch-night: #171820;
+  --stitch-night-soft: #1b1d27;
+  --stitch-grid: rgba(177, 184, 209, .22);
+  --stitch-violet: #8c6bff;
+  --stitch-cyan: #5ee8d3;
+}
+body {
+  background-color: var(--stitch-night);
+  background-image:
+    radial-gradient(ellipse at 72% 4%, rgba(101, 72, 255, .13), transparent 32%),
+    radial-gradient(ellipse at 94% 35%, rgba(42, 226, 195, .08), transparent 26%),
+    radial-gradient(circle, var(--stitch-grid) 1px, transparent 1.45px);
+  background-size: auto, auto, 30px 30px;
+  background-position: center top, right 28% top, 0 0;
+  background-attachment: fixed;
+}
+.app-shell {
+  background-color: transparent;
+  background-image:
+    radial-gradient(ellipse at 72% 4%, rgba(101, 72, 255, .13), transparent 32%),
+    radial-gradient(ellipse at 94% 35%, rgba(42, 226, 195, .08), transparent 26%),
+    radial-gradient(circle, var(--stitch-grid) 1px, transparent 1.45px);
+  background-size: auto, auto, 30px 30px;
+  background-position: center top, right 28% top, 0 0;
+  background-attachment: fixed;
+}
+.sidebar {
+  background: rgba(20, 21, 29, .97);
+  border-right-color: rgba(201, 204, 230, .12);
+  box-shadow: 10px 0 38px rgba(4, 5, 12, .12);
+}
+.brand { color: #f1f0f7; }
+.brand-mark {
+  color: #f4f0ff;
+  background: linear-gradient(145deg, #7655ef, #4f3ac5);
+  box-shadow: 0 5px 18px rgba(117, 84, 238, .32);
+}
+.brand-name span { color: var(--stitch-cyan); }
+.side-label { color: #85899b; }
+.nav-link { color: #afb2c0; }
+.nav-link:hover {
+  background: rgba(132, 111, 255, .13);
+  color: #ebe7ff;
+}
+.nav-link--active {
+  color: #f0ecff;
+  background: rgba(132, 111, 255, .19);
+}
+.nav-link--active svg { color: #a695ff; }
+.nav-count {
+  background: rgba(255, 255, 255, .08);
+  color: #b3b4c4;
+}
+.sidebar-goal {
+  background: #20222d;
+  color: #f0eff6;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .2);
+}
+.sidebar-goal-copy,.goal-foot { color: #a2a5b4; }
+.mini-progress,.daily-progress-track,.task-progress { background: #383a48; }
+.mini-progress span,.daily-progress-track span,.task-progress span {
+  background: linear-gradient(90deg, #8d6cff, #54e4d1);
+}
+.sidebar-note { color: #8f93a4; }
+.main-content { color: #ecebf3; }
+.topbar {
+  border-bottom-color: rgba(201, 204, 230, .12);
+  background: rgba(20, 21, 29, .78);
+  backdrop-filter: blur(16px);
+}
+.breadcrumb { color: #a7aaba; }
+.breadcrumb-dot { color: #696d7d; }
+.breadcrumb strong { color: #e5e4ed; }
+.date-pill {
+  color: #c5c6d1;
+  border-color: rgba(201, 204, 230, .15);
+  background: rgba(34, 36, 47, .88);
+}
+.gmt-tag { color: #9cf0df; background: rgba(94, 232, 211, .12); }
+.avatar { background: #302a48; color: #d4c8ff; }
+.eyebrow { color: #a8a9bb; }
+.eyebrow svg { color: #a18aff; }
+h1 { color: #f0eff7; }
+.welcome-copy { color: #a7a9b8; }
+.primary-cta {
+  background: linear-gradient(110deg, #7553e8, #5943c4);
+  box-shadow: 0 8px 24px rgba(100, 76, 211, .28);
+}
+.primary-cta:hover { background: linear-gradient(110deg, #8364f4, #634bd1); }
+/* Keep the study content surfaces softly lifted from the dark, patterned canvas. */
+.panel,.stat-card,.daily-goal-card {
+  background-color: #f0eff4;
+  box-shadow: 0 12px 36px rgba(3, 4, 12, .22);
+}
+.sidebar-goal { border: 1px solid rgba(220, 218, 242, .08); }
+@media (max-width: 760px) {
+  body,.app-shell { background-size: auto, auto, 25px 25px; }
+  .topbar { background: rgba(20, 21, 29, .9); }
+}
+
+
+/* Shader-theme finish: dark panels and restrained neon linework inspired by the Stitch screen */
+:root {
+  --stitch-ink: #171821;
+  --stitch-surface: #20212c;
+  --stitch-surface-raised: #262735;
+  --stitch-border: rgba(206, 209, 235, .11);
+  --stitch-text: #f0eff8;
+  --stitch-muted: #a5a7b7;
+  --stitch-violet: #9877ff;
+  --stitch-cyan: #61e9d8;
+}
+body,.app-shell {
+  background-color: var(--stitch-ink);
+  background-image:
+    radial-gradient(ellipse at 74% 1%, rgba(111, 74, 255, .16), transparent 33%),
+    radial-gradient(ellipse at 95% 43%, rgba(31, 221, 199, .08), transparent 29%),
+    radial-gradient(circle, rgba(190, 193, 219, .26) .9px, transparent 1.35px),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Cg fill='none' stroke-width='1.15' opacity='.28'%3E%3Cpath stroke='%2337dddb' d='M90 13C68 27 70 51 90 68C110 51 112 27 90 13ZM90 112C70 129 68 153 90 167C112 153 110 129 90 112Z'/%3E%3Cpath stroke='%238c68ff' d='M13 90C27 68 51 70 68 90C51 110 27 112 13 90ZM112 90C129 70 153 68 167 90C153 112 129 110 112 90Z'/%3E%3Cpath stroke='%23e3d433' d='M90 58L122 90L90 122L58 90Z'/%3E%3Cpath stroke='%23ff9f32' d='M90 72C100 78 102 82 108 90C102 98 100 102 90 108C80 102 78 98 72 90C78 82 80 78 90 72Z'/%3E%3Ccircle cx='24' cy='24' r='8' stroke='%238c68ff'/%3E%3Ccircle cx='156' cy='24' r='8' stroke='%23e3d433'/%3E%3Ccircle cx='24' cy='156' r='8' stroke='%23ff9f32'/%3E%3Ccircle cx='156' cy='156' r='8' stroke='%2337dddb'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: auto, auto, 30px 30px, 330px 330px;
+  background-position: center top, right 28% top, 0 0, 18px 92px;
+  background-attachment: fixed;
+}
+.sidebar {
+  background: rgba(18, 19, 27, .97);
+  border-right: 1px solid var(--stitch-border);
+}
+.nav-link--active { color: #f1edff; background: rgba(137, 103, 255, .19); }
+.sidebar-goal { background: var(--stitch-surface); border-color: var(--stitch-border); }
+.panel,.stat-card,.stat-card--streak,.daily-goal-card,.inspiration-card {
+  color: var(--stitch-text);
+  background: rgba(31, 32, 43, .96);
+  border: 1px solid var(--stitch-border);
+  box-shadow: 0 14px 38px rgba(0, 0, 0, .19);
+}
+.stat-card--streak { background: rgba(35, 32, 43, .97); }
+.panel-heading h2,.profile-heading h2,.admin-title-row h2,.files-panel h2,
+.stat-copy strong,.task-title,.schedule-description strong,.daily-goal-title,
+.inspiration-copy h3 { color: var(--stitch-text); }
+.section-kicker,.side-label { color: #aaa7c1; }
+.panel-subtitle,.stat-label,.stat-note,.activity-total span,.chart-foot,
+.chart-day .bar-label,.task-footer,.schedule-kind,.schedule-note,
+.feature-note,.profile-intro p,.profile-note,.sleep-last,
+.inspiration-copy p,.page-footer { color: var(--stitch-muted); }
+.stat-copy strong small,.task-order { color: #9b9daf; }
+.task-row,.task-filters,.bar-chart { border-color: var(--stitch-border); }
+.task-title { color: #dbdbe7; }
+.task-row--done .task-title { color: #85889a; }
+.empty-check { border-color: #727587; }
+.task-total,.filter-button span { background: rgba(255,255,255,.08); color: #b1b2c3; }
+.filter-button { color: #a4a6b7; }
+.filter-button--active { color: #dbd2ff; }
+.filter-button--active::after { background: var(--stitch-violet); }
+.filter-button--active span { color: #d4c8ff; background: rgba(139,103,255,.19); }
+.add-task-button,.profile-signout,.sound-test,.schedule-reminder,
+.alarm-cancel,.goal-form button {
+  color: #e5e2f2;
+  background: var(--stitch-surface-raised);
+  border-color: var(--stitch-border);
+}
+.add-task-button:hover,.sound-test:hover { background: #303142; border-color: rgba(155,129,255,.45); }
+.add-task-form input,.profile-form input,.schedule-form,.schedule-form input,
+.schedule-form select,.alarm-controls input,.helper-form select,
+.helper-form textarea,.goal-form input {
+  color: var(--stitch-text);
+  background: #191a23;
+  border-color: var(--stitch-border);
+}
+.add-task-form input::placeholder,.profile-form input::placeholder,
+.helper-form textarea::placeholder { color: #7f8294; }
+.add-task-form input:focus,.profile-form input:focus,
+.schedule-form input:focus,.helper-form textarea:focus {
+  border-color: var(--stitch-violet);
+  box-shadow: 0 0 0 3px rgba(139,103,255,.16);
+}
+.add-task-form button,.schedule-submit,.profile-form .schedule-submit {
+  color: #fff;
+  background: linear-gradient(110deg, #7655e9, #5841c0);
+  box-shadow: 0 5px 14px rgba(95,70,202,.23);
+}
+.add-task-form button:hover,.schedule-submit:hover,.profile-form .schedule-submit:hover {
+  background: linear-gradient(110deg, #8668f3, #654ed0);
+}
+.subject-chip { color: #77e6da; background: rgba(55,221,219,.11); }
+.subject-chip--pink { color: #ffa6c6; background: rgba(255,117,171,.12); }
+.subject-chip--gold { color: #f1dc78; background: rgba(227,212,51,.12); }
+.subject-chip--blue { color: #aabaff; background: rgba(102,131,255,.14); }
+.activity-total strong { color: var(--stitch-cyan); }
+.bar-fill { background: linear-gradient(180deg, #a38aff, #6c54cf); }
+.bar-task-fill { background: linear-gradient(180deg, #65ead8, #299eac); }
+.chart-day:hover .bar-fill { background: #b2a0ff; }
+.chart-day--today .bar-fill { background: #ff9e59; }
+.chart-day--today .bar-label { color: #e7d8ff; }
+.today-marker { color: #f4a96d; }
+.legend-dot { background: #a18aff; }
+.legend-task-dot { background: #58dfd0; }
+.chart-foot { color: #a3a5b6; }
+.focus-card {
+  background: radial-gradient(ellipse at 82% 5%, rgba(100,223,211,.14), transparent 34%),
+    linear-gradient(145deg, #202233 0%, #191b27 72%);
+  border: 1px solid rgba(117,229,219,.18);
+  box-shadow: 0 16px 40px rgba(0,0,0,.3), inset 0 1px rgba(255,255,255,.04);
+}
+.focus-card h2 em { color: #9a80ff; }
+.timer-ring-progress { stroke: var(--stitch-cyan); }
+.mode-tabs { background: #171923; }
+.mode-tab { color: #a9abbd; }
+.mode-tab--active { color: #f7f4ff; background: linear-gradient(100deg, #6950c8, #3c6489); }
+.timer-control { color: #f4f2fb; background: linear-gradient(100deg, #7152dc, #4d4db4); }
+.timer-control:hover { background: linear-gradient(100deg, #8267e9, #5b5fc8); }
+.focus-hint { color: #b9bfd0; }
+.hint-spark { color: var(--stitch-cyan); }
+.inspiration-card { background: radial-gradient(ellipse at 72% 18%, rgba(144,108,255,.25), transparent 42%), #20212d; }
+.inspiration-copy .section-kicker { color: #aba4c7; }
+.inspiration-copy h3 { color: #f3f0ff; }
+.inspiration-copy p { color: #b0b0c1; }
+.inspiration-art { background: radial-gradient(ellipse at 66% 26%, rgba(83,216,211,.24) 0 12%, transparent 12.5%), radial-gradient(ellipse at 76% 72%, rgba(142,103,255,.24) 0 34%, transparent 34.5%); }
+.inspiration-art::before { background: #38334f; }
+.art-sun { background: #8a6dff; box-shadow: 0 0 25px rgba(138,109,255,.46); }
+.art-plant { color: #49d5c7; text-shadow: -13px 6px 0 #a27dff, 9px 13px 0 #5596c2; }
+.art-book { color: #302d43; text-shadow: 0 4px 0 #574995, 0 7px 0 #262639; }
+.art-cup { background: #f0cd33; color: #343044; box-shadow: 0 5px 0 #b7941f; }
+.daily-goal-title { color: #eceaf6; }
+.daily-goal-subtitle,.goal-percent { color: #b3b1c3; }
+.daily-goal-icon { color: #83e5db; background: rgba(55,221,219,.12); }
+.goal-form label { color: #b8b6c7; }
+.alarm-status,.sleep-status,.file-storage-status,.helper-answer {
+  color: #c6c4d6;
+  background: #282938;
+  border: 1px solid var(--stitch-border);
+}
+.sleep-status { color: #d4c5ff; background: #29243b; }
+.helper-answer strong { color: #ebe7ff; }
+.helper-answer p { color: #c0bfd0; }
+.helper-answer pre { background: #11141d; border: 1px solid rgba(94,232,211,.14); }
+.schedule-row--next { background: linear-gradient(90deg, rgba(139,103,255,.15), transparent 86%); }
+.schedule-marker { box-shadow: 0 0 0 3px rgba(94,232,211,.13), 0 0 12px rgba(94,232,211,.24); }
+.schedule-marker--break { box-shadow: 0 0 0 3px rgba(255,159,50,.13); }
+.schedule-marker--lunch,.schedule-marker--dinner,.schedule-marker--breakfast { box-shadow: 0 0 0 3px rgba(255,125,147,.14); }
+.schedule-reminder--on { color: #70e4d5; border-color: rgba(94,232,211,.2); background: rgba(55,221,219,.1); }
+.admin-metric { background: #272835; border: 1px solid rgba(206,209,235,.07); }
+.admin-metric span,.admin-account-row { color: #a4a6b8; }
+.admin-metric strong,.admin-account-row strong { color: #80e5d9; }
+.profile-avatar-large { color: #e2d8ff; background: linear-gradient(145deg, #42346f, #252d4b); }
+.profile-mode-tabs { background: #181922; }
+.profile-mode { color: #a7a8b7; }
+.profile-mode--active { color: #f2eeff; background: #343047; box-shadow: inset 0 0 0 1px rgba(155,129,255,.2); }
+.demo-pill { color: #f1d681; background: rgba(227,212,51,.12); }
+.local-pill { color: #6fe3d5; background: rgba(55,221,219,.1); }
+.file-storage-status { color: #92ded5; }
+.file-storage-status--error { color: #ffaaa2; background: #39272d; }
+.file-icon { color: #73e3d7; background: rgba(55,221,219,.12); }
+.file-meta strong { color: #e1dfeb; }
+.file-meta span,.file-size { color: #a0a2b2; }
+.file-action { color: #81e2d8; }
+.file-action:hover { background: rgba(55,221,219,.1); }
+.file-action--delete { color: #f19b9b; }
+.file-action--delete:hover { background: rgba(241,111,132,.12); }
+.file-empty { color: #a0a2b2; }
+.profile-note strong { color: #f1d681; }
+.notice { color: #a6f0e4; background: #202e34; border: 1px solid rgba(94,232,211,.17); }
+.page-footer { color: #8f92a4; }
+@media (max-width: 900px) {
+  .sidebar { background: rgba(18,19,27,.96); border-bottom-color: var(--stitch-border); }
+}
+@media (max-width: 700px) {
+  body,.app-shell { background-size: auto, auto, 25px 25px, 250px 250px; }
+  .panel,.stat-card,.daily-goal-card,.inspiration-card { border-radius: 16px; }
+}
+
+.profile-intro strong { color: #eceaf6; }
+.profile-intro p { color: #a5a7b7; }
+/* Keep the floral shader present as atmosphere, not as the foreground. */
+body,.app-shell { background-image:
+  radial-gradient(ellipse at 74% 1%, rgba(111, 74, 255, .14), transparent 33%),
+  radial-gradient(ellipse at 95% 43%, rgba(31, 221, 199, .07), transparent 29%),
+  radial-gradient(circle, rgba(190, 193, 219, .24) .9px, transparent 1.35px),
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Cg fill='none' stroke-width='1.15' opacity='.22'%3E%3Cpath stroke='%2337dddb' d='M90 13C68 27 70 51 90 68C110 51 112 27 90 13ZM90 112C70 129 68 153 90 167C112 153 110 129 90 112Z'/%3E%3Cpath stroke='%238c68ff' d='M13 90C27 68 51 70 68 90C51 110 27 112 13 90ZM112 90C129 70 153 68 167 90C153 112 129 110 112 90Z'/%3E%3Cpath stroke='%23e3d433' d='M90 58L122 90L90 122L58 90Z'/%3E%3Cpath stroke='%23ff9f32' d='M90 72C100 78 102 82 108 90C102 98 100 102 90 108C80 102 78 98 72 90C78 82 80 78 90 72Z'/%3E%3Ccircle cx='24' cy='24' r='8' stroke='%238c68ff'/%3E%3Ccircle cx='156' cy='24' r='8' stroke='%23e3d433'/%3E%3Ccircle cx='24' cy='156' r='8' stroke='%23ff9f32'/%3E%3Ccircle cx='156' cy='156' r='8' stroke='%2337dddb'/%3E%3C/g%3E%3C/svg%3E"); }
+
+
+/* Stitch reference 2: curriculum snapshot + cognitive superchargers */
+:root {
+  --brain-cyan: #4bdeeb;
+  --brain-cyan-soft: rgba(75,222,235,.13);
+  --brain-violet: #8f64ff;
+}
+body,.app-shell {
+  background-color: #12131d;
+  background-image:
+    radial-gradient(ellipse at 76% 2%, rgba(88,61,176,.18), transparent 34%),
+    radial-gradient(ellipse at 95% 38%, rgba(38,169,195,.08), transparent 30%),
+    radial-gradient(circle, rgba(184,188,219,.22) .9px, transparent 1.35px),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 150'%3E%3Cg fill='none' stroke-linecap='round' stroke-width='1.3' opacity='.2'%3E%3Cpath stroke='%234bdeeb' d='M0 38h42v30h27v39h37M200 24h-45v24h-27v51H94v41H45v10M0 123h32V94h30M200 110h-29V84h-30M74 0v32h28v25h41V29h21V0'/%3E%3Cpath stroke='%238f64ff' d='M0 72h22v-25h29v22h24M200 54h-22V34h-26M0 20h32v18h25M200 138h-40v-19h-27v-20M105 150v-20h22V98'/%3E%3Ccircle cx='42' cy='68' r='3' fill='%234bdeeb'/%3E%3Ccircle cx='106' cy='107' r='3' fill='%238f64ff'/%3E%3Ccircle cx='128' cy='99' r='3' fill='%234bdeeb'/%3E%3Ccircle cx='155' cy='48' r='3' fill='%238f64ff'/%3E%3Ccircle cx='32' cy='94' r='3' fill='%234bdeeb'/%3E%3Ccircle cx='160' cy='119' r='3' fill='%238f64ff'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: auto, auto, 30px 30px, 380px 285px;
+  background-position: center top, right 28% top, 0 0, 10px 20px;
+  background-attachment: fixed;
+}
+.curriculum-zone,.supercharger-zone { margin: 0 0 21px; }
+.curriculum-section-head,.supercharger-heading { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:0 2px 11px; }
+.curriculum-section-head h2 { margin:0; color:#d9dbe8; font-size:13px; font-weight:800; letter-spacing:1.05px; }
+.curriculum-count,.supercharger-active { color:#4bdeeb; font-size:13px; font-weight:700; letter-spacing:.35px; }
+.curriculum-count strong,.supercharger-active strong { color:#75e9f1; }
+.curriculum-card { overflow:hidden; border:1px solid rgba(134,116,255,.24); border-radius:18px; background:linear-gradient(145deg,rgba(30,30,48,.98),rgba(22,24,38,.98)); box-shadow:0 18px 44px rgba(0,0,0,.28), inset 0 1px rgba(255,255,255,.035); }
+.curriculum-art { position:relative; min-height:205px; overflow:hidden; padding:15px 18px 11px; background:radial-gradient(ellipse at 52% 48%,rgba(73,67,161,.22),transparent 55%),linear-gradient(135deg,#171a2c,#181b2b 55%,#151724); }
+.curriculum-art::before { position:absolute; inset:0; content:""; background-image:linear-gradient(rgba(140,153,197,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(140,153,197,.055) 1px,transparent 1px); background-size:30px 30px; mask-image:linear-gradient(to bottom,black,transparent 94%); }
+.curriculum-art-head { position:relative; z-index:1; display:flex; align-items:center; gap:7px; color:#9ba8c7; font-size:8px; font-weight:800; letter-spacing:.8px; }
+.curriculum-live-dot { width:6px; height:6px; border-radius:50%; background:#53e4dc; box-shadow:0 0 10px #53e4dc; }
+.curriculum-art-state { margin-left:auto; color:#766f9f; font-size:7px; }
+.curriculum-map { position:relative; display:block; width:100%; height:158px; margin:3px auto 0; overflow:visible; }
+.curriculum-art-tag { position:absolute; right:18px; bottom:12px; color:#8d94b0; font-size:7px; letter-spacing:.8px; }
+.curriculum-copy { padding:18px 21px 17px; }
+.curriculum-kicker { display:block; margin-bottom:6px; color:#59dfe9; font-size:9px; font-weight:800; letter-spacing:1px; }
+.curriculum-copy h3 { margin:0 0 6px; color:#f0effa; font-size:22px; line-height:1.15; letter-spacing:-.5px; }
+.curriculum-copy p { max-width:680px; margin:0; color:#a7abc0; font-size:11px; line-height:1.6; }
+.curriculum-actions { display:flex; align-items:center; gap:11px; margin-top:14px; }
+.curriculum-nav-button { border:1px solid rgba(206,209,235,.13); border-radius:9px; padding:8px 10px; color:#c4c4d7; background:#252638; font-size:9px; font-weight:700; transition:background .18s,border-color .18s,transform .16s; }
+.curriculum-nav-button:hover:not(:disabled) { border-color:rgba(75,222,235,.4); background:#2a2b40; }
+.curriculum-nav-button:disabled { opacity:.4; cursor:not-allowed; }
+.curriculum-nav-button--primary { border-color:transparent; color:#fff; background:linear-gradient(110deg,#8257e9,#5b49c6); }
+.curriculum-nav-button--primary:hover:not(:disabled) { background:linear-gradient(110deg,#936df1,#6d5bd7); }
+.curriculum-progress { flex:1; height:4px; overflow:hidden; border-radius:10px; background:#363649; }
+.curriculum-progress span { display:block; width:33.333%; height:100%; border-radius:inherit; background:linear-gradient(90deg,#875eff,#4bdeeb); transition:width .22s var(--ease-out); }
+.supercharger-heading { padding-bottom:12px; }
+.supercharger-heading > div { display:flex; align-items:center; gap:11px; }
+.supercharger-heading h2 { margin:0; color:#eaebf5; font-size:21px; font-weight:700; letter-spacing:-.4px; }
+.supercharger-mark { color:#4bdeeb; font-size:23px; line-height:1; }
+.supercharger-list { display:grid; gap:9px; }
+.supercharger-row { display:grid; grid-template-columns:48px minmax(0,1fr) 64px; align-items:center; gap:12px; padding:13px 15px; border:1px solid rgba(180,184,218,.1); border-radius:16px; background:linear-gradient(110deg,rgba(29,30,45,.98),rgba(26,27,41,.97)); box-shadow:0 8px 24px rgba(0,0,0,.17); }
+.supercharger-icon { display:grid; place-items:center; width:46px; height:46px; border-radius:12px; background:#28293a; font-size:23px; }
+.supercharger-icon--eye { color:#ba9dff; }
+.supercharger-icon--recall { color:#45dceb; }
+.supercharger-icon--focus { color:#8b78ff; }
+.supercharger-copy h3 { margin:0 0 3px; color:#e6e6f1; font-size:14px; font-weight:700; letter-spacing:-.15px; }
+.supercharger-copy p { margin:0; color:#a3a5b7; font-size:10px; line-height:1.45; }
+.super-toggle { position:relative; justify-self:end; width:60px; height:32px; padding:3px; border:1px solid rgba(201,199,231,.14); border-radius:20px; background:#343548; transition:background .18s,border-color .18s; }
+.super-toggle span { display:block; width:24px; height:24px; border-radius:50%; background:#b6b7c5; box-shadow:0 2px 5px rgba(0,0,0,.28); transition:transform .18s var(--ease-out),background .18s; }
+.super-toggle--on { border-color:rgba(184,152,255,.56); background:#bd9bff; }
+.super-toggle--on span { transform:translateX(28px); background:#5716b8; }
+.super-toggle:focus-visible,.curriculum-nav-button:focus-visible,.recall-reveal:focus-visible { outline:2px solid #5ee8f1; outline-offset:3px; }
+.supercharger-row--recall { grid-template-rows:auto auto; }
+.recall-quiz { grid-column:2 / 4; display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:10px 12px; border:1px solid rgba(75,222,235,.17); border-radius:11px; background:rgba(52,64,94,.22); }
+.recall-label { color:#53dce8; font-size:7px; font-weight:800; letter-spacing:.9px; }
+.recall-quiz p { margin:4px 0 0; color:#c5c7d8; font-size:9px; line-height:1.5; }
+.recall-quiz code { color:#b6a2ff; }
+.recall-answer { margin-top:7px; color:#8ce8df; font-size:9px; line-height:1.5; }
+.recall-reveal { flex:0 0 auto; border:1px solid rgba(151,126,255,.3); border-radius:8px; padding:7px 8px; color:#d5c9ff; background:rgba(120,83,218,.15); font-size:8px; font-weight:700; }
+.supercharger-footnote { margin:9px 2px 0; color:#85889e; font-size:8px; }
+.bionic-reading .task-title,.bionic-reading .schedule-description strong,.bionic-reading .panel-subtitle { font-weight:700; letter-spacing:.005em; }
+.focus-lane-active .focus-card { box-shadow:0 0 0 1px rgba(75,222,235,.18),0 0 32px rgba(75,222,235,.1),0 16px 40px rgba(0,0,0,.28); }
+.focus-lane-active .inspiration-card { opacity:.78; }
+@media (max-width:900px) {
+  .curriculum-art { min-height:180px; }
+  .curriculum-map { height:135px; }
+}
+@media (max-width:700px) {
+  .curriculum-zone,.supercharger-zone { margin-bottom:16px; }
+  .curriculum-section-head h2 { font-size:10px; letter-spacing:.75px; }
+  .curriculum-count,.supercharger-active { font-size:10px; }
+  .curriculum-art { min-height:150px; padding:12px 13px 9px; }
+  .curriculum-map { height:109px; }
+  .curriculum-copy { padding:15px 15px 14px; }
+  .curriculum-copy h3 { font-size:19px; }
+  .curriculum-actions { gap:7px; }
+  .curriculum-nav-button { padding:8px 7px; font-size:8px; }
+  .supercharger-heading h2 { font-size:18px; }
+  .supercharger-row { grid-template-columns:39px minmax(0,1fr) 54px; gap:9px; padding:11px; border-radius:13px; }
+  .supercharger-icon { width:38px; height:38px; font-size:20px; }
+  .supercharger-copy h3 { font-size:12px; }
+  .supercharger-copy p { font-size:9px; }
+  .super-toggle { width:52px; height:29px; }
+  .super-toggle span { width:21px; height:21px; }
+  .super-toggle--on span { transform:translateX(23px); }
+  .recall-quiz { grid-column:1 / -1; align-items:center; margin-top:2px; }
+  body,.app-shell { background-size:auto,auto,25px 25px,260px 195px; }
+}
+
+
+/* Daily diary entries and editable tickable timetable routines */
+.diary-form { display:grid; grid-template-columns:minmax(0,1.5fr) minmax(125px,.7fr) minmax(130px,.7fr); align-items:end; gap:10px; padding:13px; border:1px solid rgba(206,209,235,.11); border-radius:13px; background:#191a23; }
+.diary-form label { display:grid; gap:6px; color:#b9b7ca; font-size:9px; font-weight:700; }
+.diary-form .diary-title-field { grid-column:1 / 2; }
+.diary-form input,.diary-form select,.diary-form textarea { width:100%; min-width:0; padding:9px 10px; border:1px solid rgba(206,209,235,.14); border-radius:8px; outline:none; background:#14151e; color:#f0eff8; font:inherit; font-size:10px; }
+.diary-form textarea { resize:vertical; line-height:1.45; }
+.diary-form input:focus,.diary-form select:focus,.diary-form textarea:focus { border-color:#8f64ff; box-shadow:0 0 0 3px rgba(143,100,255,.16); }
+.diary-note-field { grid-column:1 / 3; }
+.diary-form-actions,.schedule-form-actions { display:flex; align-items:center; gap:7px; }
+.diary-form-actions { justify-content:flex-end; }
+.diary-form-actions .schedule-submit,.schedule-form-actions .schedule-submit { min-height:35px; padding:8px 12px; }
+.diary-cancel { min-height:34px; border:1px solid rgba(206,209,235,.14); border-radius:8px; padding:7px 10px; color:#c2bfd0; background:#262735; font-size:9px; font-weight:700; }
+.diary-cancel:hover { border-color:rgba(143,100,255,.42); color:#eee9ff; }
+.diary-row { min-height:67px; }
+.diary-detail { gap:4px; }
+.diary-meta { display:flex; align-items:center; flex-wrap:wrap; gap:6px; }
+.diary-date { color:#78dcd9; font-size:8px; font-weight:700; }
+.diary-note-preview { overflow:hidden; color:#9b9db0; font-size:9px; text-overflow:ellipsis; white-space:nowrap; }
+.diary-edit,.schedule-edit { border:1px solid rgba(206,209,235,.12); border-radius:7px; padding:5px 7px; color:#bcb2e8; background:#252638; font-size:8px; font-weight:700; }
+.diary-edit:hover,.schedule-edit:hover { border-color:rgba(143,100,255,.4); color:#e5dcff; }
+.schedule-row { grid-template-columns:25px 66px 8px minmax(0,1fr) auto auto 23px; }
+.schedule-check { display:grid; place-items:center; width:21px; height:21px; padding:0; border:1.5px solid #77798e; border-radius:50%; color:white; background:transparent; font-size:12px; font-weight:800; transition:background .16s,border-color .16s,transform .16s; }
+.schedule-check:hover { border-color:#5ee8d3; transform:scale(1.06); }
+.schedule-check--done { border-color:#53dfd3; background:linear-gradient(135deg,#7152dc,#319eaa); box-shadow:0 0 0 3px rgba(75,222,235,.1); }
+.schedule-row--done .schedule-description strong { color:#898b9e; text-decoration:line-through; }
+.schedule-row--done .schedule-marker { opacity:.45; }
+.schedule-row--overdue:not(.schedule-row--done) .schedule-kind { color:#ffb77d; font-weight:800; }
+.schedule-row--overdue:not(.schedule-row--done) { background:linear-gradient(90deg,rgba(255,158,89,.09),transparent 88%); }
+.schedule-edit { min-width:31px; padding:5px; }
+.schedule-reminder { padding:5px 7px; }
+@media (max-width:900px) {
+  .diary-form { grid-template-columns:minmax(0,1fr) minmax(120px,.7fr); }
+  .diary-form .diary-title-field,.diary-note-field { grid-column:1 / -1; }
+  .diary-form-actions { justify-content:flex-start; }
+  .schedule-row { grid-template-columns:23px 59px 8px minmax(0,1fr) auto auto 22px; gap:5px; }
+}
+@media (max-width:700px) {
+  .diary-form { grid-template-columns:1fr 1fr; gap:9px; padding:10px; }
+  .diary-form .diary-title-field,.diary-note-field,.diary-form-actions { grid-column:1 / -1; }
+  .diary-form-actions { display:grid; grid-template-columns:1fr auto; }
+  .schedule-row { grid-template-columns:22px 51px 7px minmax(48px,1fr) auto auto 21px; gap:4px; }
+  .schedule-time { font-size:7px; }
+  .schedule-reminder { max-width:49px; overflow:hidden; padding:5px 4px; font-size:7px; }
+  .schedule-edit { min-width:25px; padding:5px 3px; font-size:7px; }
+  .schedule-delete { width:21px; opacity:1; }
+  .schedule-check { width:19px; height:19px; }
+  .diary-edit { opacity:1; }
+  .diary-row { gap:7px; }
+  .task-order { display:none; }
+}
+
+
+/* Feature navigation: each menu item opens one focused app view instead of one long dashboard */
+.page-section-view[hidden], [data-view][hidden], #dashboard-grid[hidden] { display:none !important; }
+.page-section-view:not([hidden]) { animation: view-enter .18s var(--ease-out); }
+@keyframes view-enter { from { opacity:.72; transform:translateY(3px); } to { opacity:1; transform:translateY(0); } }
+.home-actions { display:flex; align-items:center; flex-wrap:wrap; gap:10px; }
+.home-secondary-link { display:inline-flex; align-items:center; min-height:40px; padding:0 12px; border:1px solid rgba(198,199,226,.15); border-radius:11px; color:#c9c9d7; background:rgba(34,36,51,.8); text-decoration:none; font-size:10px; font-weight:700; transition:background .18s,border-color .18s,transform .16s; }
+.home-secondary-link:hover { border-color:rgba(75,222,235,.35); background:#25273a; transform:translateY(-1px); }
+body[data-active-page="tasks"] .dashboard-grid,
+body[data-active-page="progress"] .dashboard-grid,
+body[data-active-page="timetable"] .dashboard-grid,
+body[data-active-page="files"] .dashboard-grid,
+body[data-active-page="sleep"] .dashboard-grid,
+body[data-active-page="study-helper"] .dashboard-grid,
+body[data-active-page="admin"] .dashboard-grid { grid-template-columns:minmax(0,1fr); }
+body[data-active-page="focus"] .dashboard-grid { grid-template-columns:minmax(0,1.05fr) minmax(300px,.95fr); }
+body[data-active-page="focus"] .focus-card { grid-column:1; }
+body[data-active-page="focus"] .daily-goal-card,body[data-active-page="focus"] .alarm-panel { grid-column:2; }
+body[data-active-page="focus"] .inspiration-card { grid-column:1; }
+.nav-link:focus-visible { outline:2px solid #4bdeeb; outline-offset:2px; }
+@media (max-width:900px) {
+  body[data-active-page="focus"] .dashboard-grid { grid-template-columns:1fr; }
+  body[data-active-page="focus"] .focus-card,body[data-active-page="focus"] .daily-goal-card,body[data-active-page="focus"] .alarm-panel,body[data-active-page="focus"] .inspiration-card { grid-column:auto; }
+}
+@media (max-width:700px) {
+  .sidebar { position:sticky; top:0; z-index:20; display:block; width:100%; height:auto; padding:8px 10px 9px; backdrop-filter:blur(15px); }
+  .brand { width:max-content; margin:0 0 7px 2px; }
+  .side-nav { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:3px; margin:0; overflow:visible; }
+  .nav-link { display:flex; flex:initial; flex-direction:column; justify-content:center; gap:2px; min-width:0; min-height:35px; padding:4px 2px; border-radius:8px; }
+  .nav-link .nav-symbol { display:block; font-size:12px; line-height:1; }
+  .nav-link span:not(.nav-symbol):not(.nav-count) { display:block; max-width:100%; overflow:hidden; color:inherit; font-size:7px; line-height:1.15; text-overflow:ellipsis; white-space:nowrap; }
+  .nav-count { display:none; }
+  .page-wrap { padding-top:20px; }
+  .home-actions { width:100%; gap:8px; }
+  .home-secondary-link { min-height:38px; }
+  .dashboard-grid { display:grid; grid-template-columns:minmax(0,1fr); }
+}
+
+/* Give each routed feature the full page width; never leave an empty dashboard column beside it. */
+body[data-active-page="tasks"] .left-column,
+body[data-active-page="progress"] .left-column,
+body[data-active-page="timetable"] .left-column,
+body[data-active-page="files"] .left-column { grid-column:1 / -1; }
+body[data-active-page="tasks"] .right-column,
+body[data-active-page="progress"] .right-column,
+body[data-active-page="timetable"] .right-column,
+body[data-active-page="files"] .right-column { display:none; }
+body[data-active-page="focus"] .left-column,
+body[data-active-page="alarm"] .left-column,
+body[data-active-page="sleep"] .left-column,
+body[data-active-page="study-helper"] .left-column,
+body[data-active-page="admin"] .left-column { display:none; }
+body[data-active-page="focus"] .right-column,
+body[data-active-page="alarm"] .right-column,
+body[data-active-page="sleep"] .right-column,
+body[data-active-page="study-helper"] .right-column,
+body[data-active-page="admin"] .right-column { grid-column:1 / -1; }
+body[data-active-page="focus"] .right-column { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:start; gap:14px; }
+body[data-active-page="focus"] .focus-card,
+body[data-active-page="focus"] .daily-goal-card,
+body[data-active-page="focus"] .alarm-panel,
+body[data-active-page="focus"] .inspiration-card { grid-column:auto; }
+body[data-active-page="focus"] .focus-card { grid-row:span 2; }
+body[data-active-page="alarm"] .alarm-panel,
+body[data-active-page="sleep"] .sleep-panel,
+body[data-active-page="study-helper"] .helper-panel,
+body[data-active-page="admin"] .admin-panel { width:100%; }
+body[data-active-page="alarm"] .right-column,
+body[data-active-page="sleep"] .right-column,
+body[data-active-page="study-helper"] .right-column,
+body[data-active-page="admin"] .right-column { display:grid; grid-template-columns:minmax(0,1fr); align-items:start; }
+body[data-active-page="alarm"] .alarm-panel { max-width:760px; }
+@media (max-width:900px) {
+  body[data-active-page="focus"] .right-column { grid-template-columns:minmax(0,1fr); }
+  body[data-active-page="focus"] .focus-card { grid-row:auto; }
+}
+
+
+========================================================================================
+FILE: client/script.js
+========================================================================================
+// StudySprint: plain JavaScript for the timer, tasks, timetable, alarm, and sleep log.
+// Data is stored in this browser with localStorage; no account or server is needed.
+
+const TASKS_KEY = "studysprint-tasks-v1";
+const SESSIONS_KEY = "studysprint-sessions-v1";
+const SCHEDULE_KEY = "studysprint-schedule-v1";
+const SCHEDULE_COMPLETIONS_KEY = "studysprint-schedule-completions-v1";
+const SCHEDULE_OVERDUE_FIRED_KEY = "studysprint-schedule-overdue-fired-v1";
+const ALARM_KEY = "studysprint-alarm-v1";
+const SLEEP_KEY = "studysprint-sleep-v1";
+const REMINDERS_KEY = "studysprint-reminders-fired-v1";
+const GOAL_KEY = "studysprint-daily-goal-v1";
+const CURRICULUM_CARD_KEY = "studysprint-curriculum-card-v1";
+const SUPERCHARGERS_KEY = "studysprint-superchargers-v1";
+const PROFILE_KEY = "studysprint-demo-profile-v1";
+const PROFILE_SESSION_KEY = "studysprint-demo-session-v1";
+const FILE_DATABASE_NAME = "studysprint-files-v1";
+const FILE_STORE_NAME = "saved-files";
+const DAILY_GOAL_MINUTES = 120;
+const TIMER_MINUTES = { focus: 25, short: 5, long: 15 };
+
+const starterTasks = [
+  { id: "starter-html", title: "Build a simple HTML page", subject: "HTML", done: false },
+  { id: "starter-css", title: "Practice a CSS card layout", subject: "CSS", done: false },
+  { id: "starter-js", title: "Review JavaScript variables", subject: "JavaScript", done: false },
+];
+
+const starterSchedule = [
+  { id: "meal-breakfast", time: "07:30", title: "Breakfast", type: "Breakfast", reminder: false },
+  { id: "study-morning", time: "09:00", title: "Morning study block", type: "Study", reminder: false },
+  { id: "break-midmorning", time: "11:00", title: "Stretch and take a break", type: "Break", reminder: false },
+  { id: "meal-lunch", time: "13:00", title: "Lunch", type: "Lunch", reminder: false },
+  { id: "study-afternoon", time: "14:00", title: "Web development practice", type: "Study", reminder: false },
+  { id: "meal-dinner", time: "19:30", title: "Dinner", type: "Dinner", reminder: false },
+];
+
+function readSaved(key, fallback) {
+  try {
+    const saved = localStorage.getItem(key);
+    return saved ? JSON.parse(saved) : fallback;
+  } catch (error) {
+    console.warn("StudySprint could not read saved data:", error);
+    return fallback;
+  }
+}
+
+let tasks = readSaved(TASKS_KEY, starterTasks);
+let sessions = readSaved(SESSIONS_KEY, []);
+let scheduleItems = readSaved(SCHEDULE_KEY, starterSchedule);
+let scheduleCompletions = readSaved(SCHEDULE_COMPLETIONS_KEY, {});
+let overdueRemindersFired = readSaved(SCHEDULE_OVERDUE_FIRED_KEY, {});
+let editingScheduleId = null;
+let editingTaskId = null;
+let alarm = readSaved(ALARM_KEY, null);
+let sleepSession = readSaved(SLEEP_KEY, null);
+let lastSleep = readSaved("studysprint-last-sleep-v1", null);
+let dailyGoalMinutes = readSaved(GOAL_KEY, DAILY_GOAL_MINUTES);
+let remindersFired = readSaved(REMINDERS_KEY, {});
+let savedDemoProfile = readSaved(PROFILE_KEY, null);
+let activeDemoProfile = readSaved(PROFILE_SESSION_KEY, null);
+let profileMode = "signup";
+let curriculumCardIndex = Math.max(0, Math.min(11, Number(readSaved(CURRICULUM_CARD_KEY, 3)) || 0));
+let superchargerSettings = { bionic: true, recall: true, focus: true, ...readSaved(SUPERCHARGERS_KEY, {}) };
+let fileDatabasePromise = null;
+let savedFiles = [];
+let filter = "all";
+let timerMode = "focus";
+let secondsLeft = TIMER_MINUTES.focus * 60;
+let timerIsRunning = false;
+let timerInterval = null;
+let alarmInterval = null;
+let routineReminderInterval = null;
+let sleepTicker = null;
+let audioContext = null;
+let birdsInterval = null;
+
+const $ = (selector) => document.querySelector(selector);
+const taskList = $("#task-list");
+
+function getDateKey(date) {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatMinutes(minutes) {
+  const hours = Math.floor(minutes / 60);
+  const remainder = minutes % 60;
+  if (hours === 0) return `${remainder} min`;
+  return remainder === 0 ? `${hours} hr` : `${hours} hr ${remainder} min`;
+}
+
+function saveTasks() {
+  localStorage.setItem(TASKS_KEY, JSON.stringify(tasks));
+}
+
+function saveSessions() {
+  localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions));
+}
+
+function getTodayMinutes() {
+  const today = getDateKey(new Date());
+  return sessions
+    .filter((session) => session.date === today)
+    .reduce((total, session) => total + session.minutes, 0);
+}
+
+function getWeekData() {
+  const week = [];
+  for (let daysAgo = 6; daysAgo >= 0; daysAgo -= 1) {
+    const date = new Date();
+    date.setUTCHours(0, 0, 0, 0);
+    date.setUTCDate(date.getUTCDate() - daysAgo);
+    const key = getDateKey(date);
+    const minutes = sessions
+      .filter((session) => session.date === key)
+      .reduce((total, session) => total + session.minutes, 0);
+    const completedTasks = tasks.filter((task) => task.completedAt && getDateKey(new Date(task.completedAt)) === key).length;
+    week.push({
+      key,
+      label: date.toLocaleDateString(undefined, { weekday: "short", timeZone: "UTC" }).slice(0, 2),
+      minutes,
+      completedTasks,
+    });
+  }
+  return week;
+}
+
+function getStreak() {
+  const studiedDates = new Set(sessions.map((session) => session.date));
+  const cursor = new Date();
+  if (!studiedDates.has(getDateKey(cursor))) cursor.setUTCDate(cursor.getUTCDate() - 1);
+  let days = 0;
+  while (studiedDates.has(getDateKey(cursor))) {
+    days += 1;
+    cursor.setUTCDate(cursor.getUTCDate() - 1);
+  }
+  return days;
+}
+
+function getSubjectClass(subject) {
+  const lowerSubject = subject.toLowerCase();
+  if (lowerSubject.includes("css")) return "subject-chip subject-chip--pink";
+  if (lowerSubject.includes("javascript") || lowerSubject === "js") return "subject-chip subject-chip--gold";
+  if (lowerSubject === "c" || lowerSubject.includes("c language")) return "subject-chip subject-chip--blue";
+  return "subject-chip subject-chip--green";
+}
+
+function formatDiaryDate(dateValue) {
+  if (!dateValue) return "Today";
+  const date = new Date(`${dateValue}T12:00:00Z`);
+  return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", timeZone: "UTC" }).format(date);
+}
+
+function renderTasks() {
+  const visibleTasks = tasks.filter((task) => {
+    if (filter === "open") return !task.done;
+    if (filter === "done") return task.done;
+    return true;
+  }).sort((a, b) => (a.date || getDateKey(new Date())).localeCompare(b.date || getDateKey(new Date())));
+
+  taskList.innerHTML = "";
+  if (visibleTasks.length === 0) {
+    const message = filter === "done"
+      ? "No finished diary entries yet — your first checkmark is waiting."
+      : "Your diary is clear. Add a study or self-care plan when you’re ready.";
+    taskList.innerHTML = `<div class="empty-tasks"><span>▤</span><span>${message}</span></div>`;
+  } else {
+    visibleTasks.forEach((task, index) => {
+      const row = document.createElement("div");
+      row.className = `task-row diary-row ${task.done ? "task-row--done" : ""}`;
+
+      const checkButton = document.createElement("button");
+      checkButton.className = "task-check";
+      checkButton.type = "button";
+      checkButton.setAttribute("aria-label", task.done ? `Mark ${task.title} as not done` : `Mark ${task.title} as done`);
+      checkButton.setAttribute("aria-pressed", String(Boolean(task.done)));
+      checkButton.innerHTML = task.done ? "<span class='checked-check'>✓</span>" : "<span class='empty-check'></span>";
+      checkButton.addEventListener("click", () => toggleTask(task.id));
+
+      const details = document.createElement("div");
+      details.className = "task-detail diary-detail";
+      const title = document.createElement("span");
+      title.className = "task-title";
+      title.textContent = task.title;
+      const meta = document.createElement("div");
+      meta.className = "diary-meta";
+      const date = document.createElement("span");
+      date.className = "diary-date";
+      date.textContent = formatDiaryDate(task.date || getDateKey(new Date()));
+      const category = document.createElement("span");
+      category.className = getSubjectClass(task.category || task.subject || "Study");
+      category.textContent = task.category || task.subject || "Study";
+      meta.append(date, category);
+      details.append(title, meta);
+      if (task.note) {
+        const note = document.createElement("span");
+        note.className = "diary-note-preview";
+        note.textContent = task.note;
+        details.append(note);
+      }
+
+      const order = document.createElement("span");
+      order.className = "task-order";
+      order.textContent = String(index + 1).padStart(2, "0");
+
+      const editButton = document.createElement("button");
+      editButton.className = "diary-edit";
+      editButton.type = "button";
+      editButton.setAttribute("aria-label", `Edit ${task.title}`);
+      editButton.textContent = "Edit";
+      editButton.addEventListener("click", () => editTask(task.id));
+
+      const deleteButton = document.createElement("button");
+      deleteButton.className = "delete-task";
+      deleteButton.type = "button";
+      deleteButton.setAttribute("aria-label", `Delete ${task.title}`);
+      deleteButton.textContent = "×";
+      deleteButton.addEventListener("click", () => deleteTask(task.id));
+
+      row.append(checkButton, details, order, editButton, deleteButton);
+      taskList.append(row);
+    });
+  }
+
+  const completed = tasks.filter((task) => task.done).length;
+  const open = tasks.length - completed;
+  $("#task-total").textContent = tasks.length;
+  $("#nav-task-count").textContent = open;
+  $("#filter-all-count").textContent = tasks.length;
+  $("#filter-open-count").textContent = open;
+  $("#filter-done-count").textContent = completed;
+  $("#completed-count").textContent = completed;
+  $("#total-count").textContent = tasks.length;
+  $("#task-stat-note").textContent = open ? `${open} more to go` : "You're all caught up!";
+  $("#task-footer-label").textContent = `${completed} of ${tasks.length} diary entries done`;
+  $("#task-progress-fill").style.width = `${tasks.length ? (completed / tasks.length) * 100 : 0}%`;
+}
+
+function renderProgress() {
+  const todayMinutes = getTodayMinutes();
+  const todayPercent = Math.min(100, Math.round((todayMinutes / dailyGoalMinutes) * 100));
+  const week = getWeekData();
+  const weekTotal = week.reduce((total, day) => total + day.minutes, 0);
+  const highestDay = Math.max(30, ...week.map((day) => day.minutes));
+  const highestTaskDay = Math.max(3, ...week.map((day) => day.completedTasks));
+  const todayKey = getDateKey(new Date());
+  const chart = $("#week-chart");
+
+  chart.innerHTML = "";
+  week.forEach((day, index) => {
+    const dayColumn = document.createElement("div");
+    dayColumn.className = `chart-day ${day.key === todayKey ? "chart-day--today" : ""}`;
+    const barTrack = document.createElement("div");
+    barTrack.className = "bar-track";
+    const bar = document.createElement("span");
+    bar.className = "bar-fill";
+    const height = day.minutes ? Math.max(10, (day.minutes / highestDay) * 100) : 4;
+    bar.style.height = `${height}%`;
+    bar.title = `${day.minutes} focus minutes`;
+    const taskBar = document.createElement("span");
+    taskBar.className = "bar-task-fill";
+    const taskHeight = day.completedTasks ? Math.max(10, (day.completedTasks / highestTaskDay) * 100) : 4;
+    taskBar.style.height = `${taskHeight}%`;
+    taskBar.title = `${day.completedTasks} tasks completed`;
+    barTrack.append(bar, taskBar);
+    const label = document.createElement("span");
+    label.className = "bar-label";
+    label.textContent = day.label;
+    dayColumn.append(barTrack, label);
+    if (index === 6) {
+      const today = document.createElement("span");
+      today.className = "today-marker";
+      today.textContent = "today";
+      dayColumn.append(today);
+    }
+    chart.append(dayColumn);
+  });
+
+  $("#chart-total").textContent = formatMinutes(weekTotal);
+  $("#weekly-time").textContent = formatMinutes(weekTotal);
+  $("#chart-caption").textContent = weekTotal
+    ? "Nice momentum — keep it gentle."
+    : "Complete a focus session and your week will appear here.";
+  $("#daily-goal-subtitle").textContent = `${todayMinutes} of ${dailyGoalMinutes} focus minutes`;
+  $("#daily-progress-fill").style.width = `${todayPercent}%`;
+  $("#daily-progress-percent").textContent = todayPercent;
+  $("#sidebar-progress").style.width = `${todayPercent}%`;
+  $("#sidebar-goal-minutes").textContent = `${todayMinutes} / ${dailyGoalMinutes} min`;
+  $("#sidebar-goal-percent").textContent = `${todayPercent}%`;
+
+  updateAdminOverview(weekTotal);
+  const streak = getStreak();
+  $("#streak-count").textContent = streak;
+  $("#streak-unit").textContent = streak === 1 ? "day" : "days";
+  $("#streak-note").textContent = streak ? "Keep your rhythm going" : "Start a session to begin";
+}
+
+function showNotice(message) {
+  $("#notice-text").textContent = message;
+  $("#notice").hidden = false;
+  window.clearTimeout(showNotice.timeoutId);
+  showNotice.timeoutId = window.setTimeout(() => {
+    $("#notice").hidden = true;
+  }, 5000);
+}
+
+function toggleTask(id) {
+  tasks = tasks.map((task) => {
+    if (task.id !== id) return task;
+    const done = !task.done;
+    return { ...task, done, completedAt: done ? new Date().toISOString() : null };
+  });
+  saveTasks();
+  renderTasks();
+  renderProgress();
+}
+
+function deleteTask(id) {
+  tasks = tasks.filter((task) => task.id !== id);
+  saveTasks();
+  renderTasks();
+  renderProgress();
+}
+
+function resetTaskForm() {
+  editingTaskId = null;
+  $("#editing-task-id").value = "";
+  $("#new-task-input").value = "";
+  $("#new-task-date").value = getDateKey(new Date());
+  $("#new-task-category").value = "Study";
+  $("#new-task-note").value = "";
+  $("#save-task-button").textContent = "Save diary entry";
+  $("#cancel-task-edit").hidden = true;
+}
+
+function editTask(id) {
+  const task = tasks.find((item) => item.id === id);
+  if (!task) return;
+  editingTaskId = id;
+  $("#editing-task-id").value = id;
+  $("#new-task-input").value = task.title;
+  $("#new-task-date").value = task.date || getDateKey(new Date());
+  $("#new-task-category").value = ["Study", "Self-care", "College", "Personal"].includes(task.category) ? task.category : "Study";
+  $("#new-task-note").value = task.note || "";
+  $("#save-task-button").textContent = "Update diary entry";
+  $("#cancel-task-edit").hidden = false;
+  $("#add-task-form").hidden = false;
+  $("#add-task-button").setAttribute("aria-expanded", "true");
+  $("#new-task-input").focus();
+}
+
+function addTask(event) {
+  event.preventDefault();
+  const title = $("#new-task-input").value.trim();
+  if (!title) return;
+  const entry = {
+    title,
+    date: $("#new-task-date").value || getDateKey(new Date()),
+    category: $("#new-task-category").value,
+    subject: $("#new-task-category").value,
+    note: $("#new-task-note").value.trim(),
+  };
+  if (editingTaskId) {
+    tasks = tasks.map((task) => task.id === editingTaskId ? { ...task, ...entry } : task);
+    showNotice("Diary entry updated.");
+  } else {
+    tasks.push({ id: String(Date.now()), ...entry, done: false });
+    showNotice("Diary entry saved.");
+  }
+  saveTasks();
+  resetTaskForm();
+  $("#add-task-form").hidden = true;
+  $("#add-task-button").setAttribute("aria-expanded", "false");
+  renderTasks();
+  renderProgress();
+}
+
+function formatTimer() {
+  const minutes = String(Math.floor(secondsLeft / 60)).padStart(2, "0");
+  const seconds = String(secondsLeft % 60).padStart(2, "0");
+  $("#timer-time").textContent = `${minutes}:${seconds}`;
+  $("#timer-caption").textContent = timerIsRunning
+    ? "YOU'RE IN THE ZONE"
+    : timerMode === "focus" ? "READY WHEN YOU ARE" : "TAKE A BREATH";
+  const duration = TIMER_MINUTES[timerMode] * 60;
+  const progress = 1 - secondsLeft / duration;
+  const circumference = 2 * Math.PI * 77;
+  $("#timer-ring-progress").style.strokeDashoffset = `${circumference * (1 - progress)}`;
+  $("#timer-control-icon").textContent = timerIsRunning ? "Ⅱ" : "▶";
+  $("#timer-control-label").textContent = timerIsRunning ? "Pause session" : "Start focusing";
+}
+
+function setTimerMode(nextMode) {
+  timerMode = nextMode;
+  pauseTimer();
+  secondsLeft = TIMER_MINUTES[timerMode] * 60;
+  document.querySelectorAll("[data-mode]").forEach((button) => {
+    button.classList.toggle("mode-tab--active", button.dataset.mode === timerMode);
+  });
+  formatTimer();
+  $("#notice").hidden = true;
+}
+
+function pauseTimer() {
+  timerIsRunning = false;
+  if (timerInterval) window.clearInterval(timerInterval);
+  timerInterval = null;
+  formatTimer();
+}
+
+function completeTimer() {
+  pauseTimer();
+  if (timerMode === "focus") {
+    sessions.push({ date: getDateKey(new Date()), minutes: TIMER_MINUTES.focus });
+    saveSessions();
+    renderProgress();
+    showNotice("Lovely work. You finished a 25-minute focus session!");
+  } else {
+    showNotice("Break complete. Ready when you are.");
+  }
+  secondsLeft = TIMER_MINUTES[timerMode] * 60;
+  formatTimer();
+}
+
+function startOrPauseTimer() {
+  if (timerIsRunning) {
+    pauseTimer();
+    return;
+  }
+  timerIsRunning = true;
+  formatTimer();
+  timerInterval = window.setInterval(() => {
+    secondsLeft -= 1;
+    if (secondsLeft <= 0) {
+      secondsLeft = 0;
+      formatTimer();
+      completeTimer();
+    } else {
+      formatTimer();
+    }
+  }, 1000);
+}
+
+function resetTimer() {
+  pauseTimer();
+  secondsLeft = TIMER_MINUTES[timerMode] * 60;
+  $("#notice").hidden = true;
+  formatTimer();
+}
+
+// All timetable times use 24-hour GMT/UTC values such as "07:30".
+function saveSchedule() {
+  localStorage.setItem(SCHEDULE_KEY, JSON.stringify(scheduleItems));
+}
+
+function saveScheduleCompletions() {
+  localStorage.setItem(SCHEDULE_COMPLETIONS_KEY, JSON.stringify(scheduleCompletions));
+}
+
+function getTodayScheduleCompletions() {
+  const today = getDateKey(new Date());
+  if (!Array.isArray(scheduleCompletions[today])) scheduleCompletions[today] = [];
+  return scheduleCompletions[today];
+}
+
+function isScheduleItemDone(id) {
+  return getTodayScheduleCompletions().includes(id);
+}
+
+function toggleScheduleCompletion(id) {
+  const today = getDateKey(new Date());
+  const completed = getTodayScheduleCompletions();
+  scheduleCompletions[today] = completed.includes(id)
+    ? completed.filter((itemId) => itemId !== id)
+    : [...completed, id];
+  saveScheduleCompletions();
+  renderSchedule();
+  updateAdminOverview();
+  showNotice(scheduleCompletions[today].includes(id) ? "Routine activity marked complete." : "Routine activity marked not done yet.");
+}
+
+function renderSchedule() {
+  const list = $("#schedule-list");
+  list.innerHTML = "";
+  scheduleItems.sort((a, b) => a.time.localeCompare(b.time));
+
+  if (scheduleItems.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "schedule-empty";
+    empty.textContent = "Your daily plan is empty. Add a study, meal, break, or self-care activity.";
+    list.append(empty);
+    return;
+  }
+
+  const now = new Date();
+  const currentMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
+  const nextIndex = scheduleItems.findIndex((item) => {
+    const [hour, minute] = item.time.split(":").map(Number);
+    return hour * 60 + minute >= currentMinutes && !isScheduleItemDone(item.id);
+  });
+  const nextScheduledIndex = nextIndex === -1 ? -1 : nextIndex;
+  const nextIsTomorrow = nextIndex === -1 && scheduleItems.some((item) => !isScheduleItemDone(item.id));
+
+  scheduleItems.forEach((item, index) => {
+    const [hour, minute] = item.time.split(":").map(Number);
+    const eventMinutes = hour * 60 + minute;
+    const done = isScheduleItemDone(item.id);
+    const isNext = index === nextScheduledIndex;
+    const isCurrent = eventMinutes === currentMinutes && !done;
+    const isOverdue = eventMinutes < currentMinutes && !done;
+    const row = document.createElement("div");
+    row.className = `schedule-row ${isNext ? "schedule-row--next" : ""} ${done ? "schedule-row--done" : ""} ${isOverdue ? "schedule-row--overdue" : ""}`;
+
+    const checkButton = document.createElement("button");
+    checkButton.className = `schedule-check ${done ? "schedule-check--done" : ""}`;
+    checkButton.type = "button";
+    checkButton.setAttribute("aria-label", done ? `Mark ${item.title} incomplete` : `Mark ${item.title} complete`);
+    checkButton.setAttribute("aria-pressed", String(done));
+    checkButton.innerHTML = done ? "✓" : "";
+    checkButton.addEventListener("click", () => toggleScheduleCompletion(item.id));
+
+    const time = document.createElement("time");
+    time.className = "schedule-time";
+    time.textContent = `${item.time} GMT`;
+
+    const marker = document.createElement("span");
+    marker.className = `schedule-marker schedule-marker--${item.type.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+    marker.setAttribute("aria-hidden", "true");
+
+    const description = document.createElement("div");
+    description.className = "schedule-description";
+    const title = document.createElement("strong");
+    title.textContent = item.title;
+    const kind = document.createElement("span");
+    kind.className = "schedule-kind";
+    kind.textContent = done ? "Completed today" : isCurrent ? "Now" : isNext ? (nextIsTomorrow ? "Tomorrow" : "Next up") : isOverdue ? "Still to do" : item.type;
+    description.append(title, kind);
+
+    const reminderButton = document.createElement("button");
+    reminderButton.className = `schedule-reminder ${item.reminder ? "schedule-reminder--on" : ""}`;
+    reminderButton.type = "button";
+    reminderButton.textContent = item.reminder ? "🔔 On" : "Remind";
+    reminderButton.setAttribute("aria-label", item.reminder ? `Turn off reminder for ${item.title}` : `Set reminder for ${item.title}`);
+    reminderButton.setAttribute("aria-pressed", String(Boolean(item.reminder)));
+    reminderButton.addEventListener("click", () => toggleScheduleReminder(item.id));
+
+    const editButton = document.createElement("button");
+    editButton.className = "schedule-edit";
+    editButton.type = "button";
+    editButton.textContent = "Edit";
+    editButton.setAttribute("aria-label", `Edit ${item.title} in timetable`);
+    editButton.addEventListener("click", () => editScheduleItem(item.id));
+
+    const removeButton = document.createElement("button");
+    removeButton.className = "schedule-delete";
+    removeButton.type = "button";
+    removeButton.textContent = "×";
+    removeButton.setAttribute("aria-label", `Remove ${item.title} from timetable`);
+    removeButton.addEventListener("click", () => removeScheduleItem(item.id));
+
+    row.append(checkButton, time, marker, description, reminderButton, editButton, removeButton);
+    list.append(row);
+  });
+}
+
+function resetScheduleForm() {
+  editingScheduleId = null;
+  $("#editing-event-id").value = "";
+  $("#event-time").value = "16:00";
+  $("#event-title").value = "";
+  $("#event-type").value = "Study";
+  $("#event-reminder").checked = false;
+  $("#save-event-button").textContent = "Add to timetable";
+  $("#cancel-event-edit").hidden = true;
+}
+
+function editScheduleItem(id) {
+  const item = scheduleItems.find((entry) => entry.id === id);
+  if (!item) return;
+  editingScheduleId = id;
+  $("#editing-event-id").value = id;
+  $("#event-time").value = item.time;
+  $("#event-title").value = item.title;
+  $("#event-type").value = ["Study", "Self-care", "Breakfast", "Lunch", "Dinner", "Break", "Other"].includes(item.type) ? item.type : "Other";
+  $("#event-reminder").checked = Boolean(item.reminder);
+  $("#save-event-button").textContent = "Save changes";
+  $("#cancel-event-edit").hidden = false;
+  $("#schedule-form").hidden = false;
+  $("#add-event-button").setAttribute("aria-expanded", "true");
+  $("#event-title").focus();
+}
+
+function clearTodayReminderFlags(id) {
+  const todayPrefix = `${getDateKey(new Date())}:${id}:`;
+  Object.keys(remindersFired).forEach((key) => { if (key.startsWith(todayPrefix)) delete remindersFired[key]; });
+  Object.keys(overdueRemindersFired).forEach((key) => { if (key.startsWith(todayPrefix)) delete overdueRemindersFired[key]; });
+  localStorage.setItem(REMINDERS_KEY, JSON.stringify(remindersFired));
+  localStorage.setItem(SCHEDULE_OVERDUE_FIRED_KEY, JSON.stringify(overdueRemindersFired));
+}
+
+function toggleScheduleReminder(id) {
+  scheduleItems = scheduleItems.map((item) => item.id === id ? { ...item, reminder: !item.reminder } : item);
+  saveSchedule();
+  renderSchedule();
+  const item = scheduleItems.find((entry) => entry.id === id);
+  if (item && item.reminder) {
+    showNotice("Daily reminder set. Allow browser notifications and keep StudySprint open for alerts.");
+  } else {
+    showNotice("Reminder turned off for this activity.");
+  }
+  updateAdminOverview();
+}
+
+function addScheduleItem(event) {
+  event.preventDefault();
+  const time = $("#event-time").value;
+  const title = $("#event-title").value.trim();
+  const type = $("#event-type").value;
+  const reminder = $("#event-reminder").checked;
+  if (!time || !title) return;
+
+  if (editingScheduleId) {
+    scheduleItems = scheduleItems.map((item) => item.id === editingScheduleId ? { ...item, time, title, type, reminder } : item);
+    const today = getDateKey(new Date());
+    scheduleCompletions[today] = getTodayScheduleCompletions().filter((itemId) => itemId !== editingScheduleId);
+    saveScheduleCompletions();
+    clearTodayReminderFlags(editingScheduleId);
+    showNotice("Timetable activity updated. Its today checkmark was reset.");
+  } else {
+    scheduleItems.push({ id: String(Date.now()), time, title, type, reminder });
+    showNotice("Activity added to your repeating daily timetable.");
+  }
+  saveSchedule();
+  renderSchedule();
+  resetScheduleForm();
+  $("#schedule-form").hidden = true;
+  $("#add-event-button").setAttribute("aria-expanded", "false");
+  updateAdminOverview();
+}
+
+function removeScheduleItem(id) {
+  scheduleItems = scheduleItems.filter((item) => item.id !== id);
+  const today = getDateKey(new Date());
+  scheduleCompletions[today] = getTodayScheduleCompletions().filter((itemId) => itemId !== id);
+  clearTodayReminderFlags(id);
+  saveScheduleCompletions();
+  saveSchedule();
+  renderSchedule();
+  updateAdminOverview();
+}
+
+function fireRoutineAlert(title, body) {
+  showNotice(`${title}: ${body}`);
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  try {
+    new Notification(title, { body, tag: `studysprint-${Date.now()}` });
+  } catch (error) {
+    console.info("StudySprint could not show a browser notification:", error);
+  }
+}
+
+function checkRoutineReminders() {
+  const now = new Date();
+  const today = getDateKey(now);
+  const currentMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
+  const doneToday = getTodayScheduleCompletions();
+  let updatedDue = false;
+  let updatedOverdue = false;
+
+  scheduleItems.forEach((item) => {
+    if (!item.reminder || doneToday.includes(item.id)) return;
+    const [hour, minute] = item.time.split(":").map(Number);
+    const eventMinutes = hour * 60 + minute;
+    const ageMinutes = currentMinutes - eventMinutes;
+    const dueKey = `${today}:${item.id}:due`;
+    const overdueKey = `${today}:${item.id}:overdue`;
+
+    // Catch the due alert for a few minutes if the page was briefly backgrounded.
+    if (ageMinutes >= 0 && ageMinutes < 5 && !remindersFired[dueKey]) {
+      remindersFired[dueKey] = true;
+      updatedDue = true;
+      fireRoutineAlert("StudySprint timetable", `${item.title} is scheduled now (${item.time} GMT). Tap its circle when you finish.`);
+    }
+    // One kind follow-up, sent once, 15 minutes after an unchecked activity.
+    if (ageMinutes >= 15 && !overdueRemindersFired[overdueKey]) {
+      overdueRemindersFired[overdueKey] = true;
+      updatedOverdue = true;
+      fireRoutineAlert("StudySprint check-in", `${item.title} is still unchecked. Take a moment to do it, reschedule, or adjust your plan.`);
+    }
+  });
+
+  if (updatedDue) localStorage.setItem(REMINDERS_KEY, JSON.stringify(remindersFired));
+  if (updatedOverdue) localStorage.setItem(SCHEDULE_OVERDUE_FIRED_KEY, JSON.stringify(overdueRemindersFired));
+  updateAdminOverview();
+}
+
+function getAudioContext() {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return null;
+  if (!audioContext) audioContext = new AudioContextClass();
+  return audioContext;
+}
+
+// A short, rising two-note oscillator chirp; it needs no downloaded sound file.
+function playBirdChirp() {
+  const context = getAudioContext();
+  if (!context || context.state !== "running") return;
+  const start = context.currentTime;
+
+  [0, 0.24, 0.56].forEach((offset, index) => {
+    const oscillator = context.createOscillator();
+    const volume = context.createGain();
+    const chirpStart = start + offset;
+    const baseFrequency = 1900 + index * 100;
+
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(baseFrequency, chirpStart);
+    oscillator.frequency.linearRampToValueAtTime(baseFrequency + 750, chirpStart + 0.09);
+    oscillator.frequency.linearRampToValueAtTime(baseFrequency + 260, chirpStart + 0.2);
+
+    volume.gain.setValueAtTime(0.0001, chirpStart);
+    volume.gain.linearRampToValueAtTime(0.075, chirpStart + 0.025);
+    volume.gain.exponentialRampToValueAtTime(0.0001, chirpStart + 0.22);
+
+    oscillator.connect(volume);
+    volume.connect(context.destination);
+    oscillator.start(chirpStart);
+    oscillator.stop(chirpStart + 0.23);
+  });
+}
+
+async function startBirdsong() {
+  const context = getAudioContext();
+  if (!context) {
+    showNotice("This browser does not support the generated birdsong sound.");
+    return;
+  }
+  try {
+    if (context.state === "suspended") await context.resume();
+  } catch (error) {
+    showNotice("Allow sound in your browser, then try the birdsong again.");
+    return;
+  }
+  if (context.state !== "running") {
+    showNotice("Allow sound in your browser, then try the birdsong again.");
+    return;
+  }
+  stopBirdsong();
+  playBirdChirp();
+  birdsInterval = window.setInterval(playBirdChirp, 1450);
+  $("#test-birds").hidden = true;
+  $("#stop-birds").hidden = false;
+}
+
+function stopBirdsong() {
+  if (birdsInterval) window.clearInterval(birdsInterval);
+  birdsInterval = null;
+  $("#test-birds").hidden = false;
+  $("#stop-birds").hidden = true;
+}
+
+function renderAlarmStatus(message) {
+  const status = $("#alarm-status");
+  if (message) {
+    status.textContent = message;
+    return;
+  }
+  if (!alarm || !alarm.enabled) {
+    status.textContent = "No alarm set.";
+    return;
+  }
+  status.textContent = `Daily alarm set for ${alarm.time} GMT.`;
+  $("#alarm-time").value = alarm.time;
+}
+
+function setAlarm() {
+  const time = $("#alarm-time").value;
+  if (!time) {
+    renderAlarmStatus("Choose a time first.");
+    return;
+  }
+
+  const now = new Date();
+  const [hour, minute] = time.split(":").map(Number);
+  const selectedMinutes = hour * 60 + minute;
+  const currentMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
+  const today = getDateKey(now);
+  alarm = { time, enabled: true, lastFiredDate: selectedMinutes <= currentMinutes ? today : null };
+  localStorage.setItem(ALARM_KEY, JSON.stringify(alarm));
+  const context = getAudioContext();
+  if (context && context.state === "suspended") context.resume(); // A user click unlocks audio in browsers that require it.
+  renderAlarmStatus(`Daily alarm set for ${time} GMT. Keep this page open for it to ring.`);
+  $("#cancel-alarm").hidden = false;
+}
+
+function cancelAlarm() {
+  alarm = null;
+  localStorage.removeItem(ALARM_KEY);
+  stopBirdsong();
+  renderAlarmStatus("Alarm cancelled.");
+  $("#cancel-alarm").hidden = true;
+}
+
+function checkAlarm() {
+  if (!alarm || !alarm.enabled) return;
+  const now = new Date();
+  const today = getDateKey(now);
+  const currentTime = `${String(now.getUTCHours()).padStart(2, "0")}:${String(now.getUTCMinutes()).padStart(2, "0")}`;
+
+  if (currentTime >= alarm.time && alarm.lastFiredDate !== today) {
+    alarm.lastFiredDate = today;
+    localStorage.setItem(ALARM_KEY, JSON.stringify(alarm));
+    renderAlarmStatus(`Your alarm is ringing — ${alarm.time} GMT.`);
+    startBirdsong();
+    showNotice(`Time for your StudySprint reminder (${alarm.time} GMT).`);
+
+    if ("Notification" in window && Notification.permission === "granted") {
+      new Notification("StudySprint alarm", { body: `Your reminder is ringing (${alarm.time} GMT).` });
+    }
+  }
+}
+
+function enableNotifications() {
+  if (!("Notification" in window)) {
+    renderAlarmStatus("This browser does not support pop-up notifications. In-page reminders still work while StudySprint is open.");
+    showNotice("Pop-up notifications are not supported here; keep StudySprint open for in-page reminders.");
+    return;
+  }
+  Notification.requestPermission().then((permission) => {
+    renderAlarmStatus(permission === "granted"
+      ? "Browser reminders enabled. Keep StudySprint open; mobile push after closing this page is not available in this demo."
+      : "Pop-ups were not enabled. In-page reminders still work while the page is open.");
+    showNotice(permission === "granted" ? "Browser notifications enabled for timetable check-ins." : "Browser permission was not granted; in-page reminders remain available.");
+  });
+}
+
+function formatSleepDuration(totalMinutes) {
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours === 0) return `${minutes} min`;
+  if (minutes === 0) return `${hours} hr`;
+  return `${hours} hr ${minutes} min`;
+}
+
+function formatGMTDateTime(date) {
+  return new Intl.DateTimeFormat(undefined, {
+    timeZone: "UTC",
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(date) + " GMT";
+}
+
+function renderSleep() {
+  const status = $("#sleep-status");
+  if (sleepSession && sleepSession.startedAt) {
+    const start = new Date(sleepSession.startedAt);
+    const elapsedMinutes = Math.max(0, Math.floor((Date.now() - start.getTime()) / 60000));
+    status.textContent = `Sleep started ${formatGMTDateTime(start)} · ${formatSleepDuration(elapsedMinutes)} so far`;
+    $("#start-sleep").hidden = true;
+    $("#end-sleep").hidden = false;
+  } else {
+    status.textContent = "No sleep session running.";
+    $("#start-sleep").hidden = false;
+    $("#end-sleep").hidden = true;
+  }
+
+  if (lastSleep && lastSleep.startedAt && lastSleep.endedAt) {
+    const start = new Date(lastSleep.startedAt);
+    const end = new Date(lastSleep.endedAt);
+    $("#sleep-last").textContent = `Last session: ${formatSleepDuration(lastSleep.minutes)} · ${formatGMTDateTime(start)} to ${formatGMTDateTime(end)}`;
+  } else {
+    $("#sleep-last").textContent = "Your last sleep duration will appear here.";
+  }
+}
+
+function startSleep() {
+  sleepSession = { startedAt: new Date().toISOString() };
+  localStorage.setItem(SLEEP_KEY, JSON.stringify(sleepSession));
+  renderSleep();
+  if (sleepTicker) window.clearInterval(sleepTicker);
+  sleepTicker = window.setInterval(renderSleep, 60000);
+}
+
+function endSleep() {
+  if (!sleepSession || !sleepSession.startedAt) return;
+  const endedAt = new Date().toISOString();
+  const startedAt = new Date(sleepSession.startedAt);
+  const minutes = Math.max(0, Math.round((Date.parse(endedAt) - startedAt.getTime()) / 60000));
+  lastSleep = { startedAt: sleepSession.startedAt, endedAt, minutes };
+  localStorage.setItem("studysprint-last-sleep-v1", JSON.stringify(lastSleep));
+  localStorage.removeItem(SLEEP_KEY);
+  sleepSession = null;
+  if (sleepTicker) window.clearInterval(sleepTicker);
+  sleepTicker = null;
+  renderSleep();
+  showNotice(`Sleep session saved: ${formatSleepDuration(minutes)}.`);
+}
+
+const helperLessons = [
+  { subject: "C", terms: /\b(variable|variables|int|float|char|data type)\b/i, title: "C variables", text: "A variable is a named place where your program stores a value. Pick a type that matches the value, then give the variable a clear name.", code: "int age = 18;\nfloat marks = 92.5f;\nchar grade = 'A';" },
+  { subject: "C", terms: /\b(if|else|condition|conditional)\b/i, title: "C if/else", text: "An if statement checks a condition. The first block runs when it is true; else runs when it is false.", code: "if (marks >= 40) {\n    printf(\"Pass\");\n} else {\n    printf(\"Try again\");\n}" },
+  { subject: "C", terms: /\b(for loop|while loop|loop|iteration|repeat)\b/i, title: "C loops", text: "A loop repeats code. A for loop is handy when you know the number of repetitions. Change the counter so the loop eventually stops.", code: "for (int i = 0; i < 5; i++) {\n    printf(\"%d\", i);\n}" },
+  { subject: "C", terms: /\b(function|parameter|return)\b/i, title: "C functions", text: "A function is a reusable block of code. Its return type says what kind of value it gives back; void means it returns no value.", code: "int add(int a, int b) {\n    return a + b;\n}" },
+  { subject: "C", terms: /\b(array|arrays)\b/i, title: "C arrays", text: "An array stores several values of one type under one name. Indexing starts at zero, so the first item is at position 0.", code: "int scores[3] = {80, 90, 75};\nprintf(\"%d\", scores[0]);" },
+  { subject: "C", terms: /\b(pointer|pointers|address)\b/i, title: "C pointers", text: "A pointer stores the memory address of another variable. The & operator gets an address; * reads the value at an address. Practice carefully and initialize pointers before using them.", code: "int number = 7;\nint *pointer = &number;\nprintf(\"%d\", *pointer);" },
+  { subject: "HTML", terms: /\b(tag|tags|element|elements|structure|html)\b/i, title: "HTML elements", text: "HTML describes what content is on a page. Most elements have an opening tag, content, and a closing tag. Use headings in order and add labels to form fields.", code: "<h1>My study page</h1>\n<p>I am learning HTML.</p>" },
+  { subject: "CSS", terms: /\b(flexbox|flex|align|justify)\b/i, title: "CSS Flexbox", text: "Flexbox arranges items along a row or column. display:flex turns it on; justify-content positions items along the main axis, while align-items handles the cross axis.", code: ".row {\n  display: flex;\n  justify-content: space-between;\n  align-items: center;\n}" },
+  { subject: "CSS", terms: /\b(box model|margin|padding|border)\b/i, title: "The CSS box model", text: "Every element is a box: content, padding inside the border, border, then margin outside. box-sizing:border-box makes sizing easier to reason about.", code: "* { box-sizing: border-box; }\n.card { padding: 16px; margin: 12px; }" },
+  { subject: "CSS", terms: /\b(grid|columns|rows)\b/i, title: "CSS Grid", text: "Grid lays things out in rows and columns. Define the columns on a parent, then put each card inside it.", code: ".cards {\n  display: grid;\n  grid-template-columns: repeat(2, 1fr);\n  gap: 16px;\n}" },
+  { subject: "CSS", terms: /\b(responsive|mobile|media query)\b/i, title: "Responsive CSS", text: "A media query applies styles only when the screen meets a condition. Start with a simple one-column layout, then add columns for wider screens.", code: "@media (min-width: 700px) {\n  .cards { grid-template-columns: repeat(2, 1fr); }\n}" },
+  { subject: "JavaScript", terms: /\b(variable|variables|let|const)\b/i, title: "JavaScript variables", text: "Use const when you will not reassign the variable. Use let when its value needs to change. Keep names clear so you can read your code later.", code: "const subject = \"Web development\";\nlet minutesStudied = 0;\nminutesStudied = minutesStudied + 25;" },
+  { subject: "JavaScript", terms: /\b(for loop|while loop|loop|iteration|repeat)\b/i, title: "JavaScript loops", text: "A loop repeats instructions. A for loop has a starting value, a condition, and an update. Make sure the condition eventually becomes false.", code: "for (let i = 0; i < 5; i++) {\n  console.log(i);\n}" },
+  { subject: "JavaScript", terms: /\b(function|parameter|return)\b/i, title: "JavaScript functions", text: "A function is a named set of steps you can reuse. Parameters are inputs; return sends a result back to the caller.", code: "function add(a, b) {\n  return a + b;\n}\nconsole.log(add(2, 3));" },
+  { subject: "JavaScript", terms: /\b(array|arrays)\b/i, title: "JavaScript arrays", text: "An array keeps an ordered list of values. Positions start at zero, and length tells you how many values it has.", code: "const subjects = [\"HTML\", \"CSS\", \"JavaScript\"];\nconsole.log(subjects[0]);" },
+  { subject: "JavaScript", terms: /\b(dom|button|click|event|events|html page)\b/i, title: "JavaScript and the page (DOM)", text: "The DOM is the browser's object version of your HTML. Select an element, then add an event listener to respond when someone clicks it.", code: "const button = document.querySelector(\"button\");\nbutton.addEventListener(\"click\", () => {\n  alert(\"You clicked!\");\n});" },
+];
+
+function answerStudyQuestion(event) {
+  event.preventDefault();
+  const question = $("#helper-question").value.trim();
+  const subject = $("#helper-subject").value;
+  const answer = $("#helper-answer");
+  const lesson = helperLessons.find((item) => item.subject === subject && item.terms.test(question));
+  const title = answer.querySelector("strong");
+  const body = answer.querySelector("p");
+  const code = answer.querySelector("pre");
+
+  if (!lesson) {
+    title.textContent = "Try asking about a smaller beginner topic";
+    body.textContent = `This offline helper has prepared ${subject} lessons for variables, conditions, loops, functions, and common basics. It is not a live AI and cannot answer every question. Try asking “What is a loop?”`;
+    code.hidden = true;
+    code.textContent = "";
+    return;
+  }
+
+  title.textContent = lesson.title;
+  body.textContent = lesson.text;
+  code.textContent = lesson.code;
+  code.hidden = false;
+}
+
+function safeEmail(value) {
+  return value.trim().toLowerCase();
+}
+
+function setProfileMode(mode) {
+  profileMode = mode;
+  document.querySelectorAll("[data-profile-mode]").forEach((button) => {
+    button.classList.toggle("profile-mode--active", button.dataset.profileMode === mode);
+  });
+  const signup = mode === "signup";
+  $("#profile-name-label").hidden = !signup;
+  $("#profile-name").required = signup;
+  $("#profile-submit").textContent = signup ? "Create demo profile" : "Sign in (demo)";
+  if (!signup && savedDemoProfile) $("#profile-email").value = savedDemoProfile.email;
+}
+
+function renderProfile() {
+  const hasSession = Boolean(activeDemoProfile && activeDemoProfile.email);
+  $("#profile-form").hidden = hasSession;
+  $("#profile-signout").hidden = !hasSession;
+  document.querySelectorAll("[data-profile-mode]").forEach((button) => { button.disabled = hasSession; });
+  if (hasSession) {
+    const name = activeDemoProfile.name || activeDemoProfile.email.split("@")[0];
+    $("#profile-greeting").textContent = `Hello, ${name}`;
+    $("#profile-status").textContent = `Demo session active for ${activeDemoProfile.email}. This is only a local label, not a verified account.`;
+    $("#profile-avatar-large").textContent = name.slice(0, 1).toUpperCase();
+    $(".avatar").textContent = name.slice(0, 1).toUpperCase();
+    $("#admin-profile-status").textContent = "Demo profile active";
+  } else {
+    $("#profile-greeting").textContent = savedDemoProfile ? "Welcome back" : "Welcome to StudySprint";
+    $("#profile-status").textContent = savedDemoProfile
+      ? "Sign in with the same email label to resume this browser demo. No password is used."
+      : "Sign up to create a demo profile, or sign in to the saved demo profile on this browser.";
+    $("#profile-avatar-large").textContent = "S";
+    $(".avatar").textContent = "S";
+    $("#admin-profile-status").textContent = "Signed out";
+  }
+  updateAdminOverview();
+}
+
+function submitDemoProfile(event) {
+  event.preventDefault();
+  const email = safeEmail($("#profile-email").value);
+  const name = $("#profile-name").value.trim();
+  if (!email) return;
+
+  if (profileMode === "signup") {
+    if (savedDemoProfile && savedDemoProfile.email !== email) {
+      showNotice("This local demo supports one profile label per browser. Use the existing email label to sign in.");
+      return;
+    }
+    savedDemoProfile = { name: name || email.split("@")[0], email, createdAt: new Date().toISOString() };
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(savedDemoProfile));
+  } else {
+    if (!savedDemoProfile || savedDemoProfile.email !== email) {
+      showNotice("No matching demo profile on this browser. Create a demo profile first.");
+      return;
+    }
+    if (name) savedDemoProfile.name = name;
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(savedDemoProfile));
+  }
+
+  activeDemoProfile = { name: savedDemoProfile.name, email: savedDemoProfile.email };
+  localStorage.setItem(PROFILE_SESSION_KEY, JSON.stringify(activeDemoProfile));
+  renderProfile();
+  showNotice("Demo profile opened on this browser. It is not a secure account.");
+}
+
+function signOutDemoProfile() {
+  activeDemoProfile = null;
+  localStorage.removeItem(PROFILE_SESSION_KEY);
+  renderProfile();
+  showNotice("Signed out of the demo profile. Your local files and study data remain on this device.");
+}
+
+function openFileDatabase() {
+  if (!("indexedDB" in window)) return Promise.reject(new Error("This browser does not support local file storage."));
+  if (fileDatabasePromise) return fileDatabasePromise;
+  fileDatabasePromise = new Promise((resolve, reject) => {
+    const request = indexedDB.open(FILE_DATABASE_NAME, 1);
+    request.onupgradeneeded = () => {
+      const database = request.result;
+      if (!database.objectStoreNames.contains(FILE_STORE_NAME)) database.createObjectStore(FILE_STORE_NAME, { keyPath: "id" });
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error || new Error("Could not open browser file storage."));
+    request.onblocked = () => reject(new Error("Close other StudySprint tabs, then try again."));
+  });
+  return fileDatabasePromise;
+}
+
+async function getAllSavedFiles() {
+  const database = await openFileDatabase();
+  return new Promise((resolve, reject) => {
+    const request = database.transaction(FILE_STORE_NAME, "readonly").objectStore(FILE_STORE_NAME).getAll();
+    request.onsuccess = () => resolve(request.result || []);
+    request.onerror = () => reject(request.error || new Error("Could not list saved files."));
+  });
+}
+
+function humanFileSize(bytes) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+async function refreshSavedFiles(message) {
+  try {
+    savedFiles = await getAllSavedFiles();
+    savedFiles.sort((a, b) => (b.addedAt || "").localeCompare(a.addedAt || ""));
+    renderSavedFiles();
+    setFileStatus(message || `${savedFiles.length} saved file${savedFiles.length === 1 ? "" : "s"} on this browser. Nothing was uploaded.`);
+  } catch (error) {
+    setFileStatus(error.message || "Local file storage is unavailable in this browser.", true);
+  }
+}
+
+function setFileStatus(message, isError = false) {
+  const status = $("#file-storage-status");
+  status.textContent = message;
+  status.classList.toggle("file-storage-status--error", isError);
+}
+
+function renderSavedFiles() {
+  const list = $("#file-list");
+  list.innerHTML = "";
+  $("#file-count").textContent = savedFiles.length;
+  $("#admin-file-count").textContent = savedFiles.length;
+
+  if (savedFiles.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "file-empty";
+    empty.textContent = "No saved files yet. Choose files or a folder to start.";
+    list.append(empty);
+    return;
+  }
+
+  savedFiles.forEach((file) => {
+    const row = document.createElement("div");
+    row.className = "file-row";
+    const icon = document.createElement("span");
+    icon.className = "file-icon";
+    icon.setAttribute("aria-hidden", "true");
+    icon.textContent = file.type && file.type.startsWith("image/") ? "▧" : "▤";
+    const meta = document.createElement("div");
+    meta.className = "file-meta";
+    const name = document.createElement("strong");
+    name.textContent = file.name;
+    const location = document.createElement("span");
+    location.textContent = file.relativePath || "Saved from this PC";
+    meta.append(name, location);
+    const size = document.createElement("span");
+    size.className = "file-size";
+    size.textContent = humanFileSize(file.size || 0);
+    const download = document.createElement("button");
+    download.className = "file-action";
+    download.type = "button";
+    download.textContent = "Download";
+    download.addEventListener("click", () => downloadSavedFile(file.id));
+    const remove = document.createElement("button");
+    remove.className = "file-action file-action--delete";
+    remove.type = "button";
+    remove.textContent = "Remove";
+    remove.setAttribute("aria-label", `Remove the saved copy of ${file.name}`);
+    remove.addEventListener("click", () => deleteSavedFile(file.id));
+    row.append(icon, meta, size, download, remove);
+    list.append(row);
+  });
+}
+
+async function saveFilesFromComputer(fileList) {
+  const files = Array.from(fileList || []);
+  if (files.length === 0) return;
+  const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
+  if (files.length > 100) {
+    setFileStatus("Choose up to 100 files at a time.", true);
+    return;
+  }
+  if (totalBytes > 100 * 1024 * 1024) {
+    setFileStatus("This selection is over 100 MB. Choose a smaller group to fit browser storage.", true);
+    return;
+  }
+
+  setFileStatus(`Saving ${files.length} file${files.length === 1 ? "" : "s"} in this browser…`);
+  try {
+    const database = await openFileDatabase();
+    await new Promise((resolve, reject) => {
+      const transaction = database.transaction(FILE_STORE_NAME, "readwrite");
+      const store = transaction.objectStore(FILE_STORE_NAME);
+      files.forEach((file) => {
+        const id = globalThis.crypto && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        store.put({
+          id,
+          name: file.name,
+          relativePath: file.webkitRelativePath || "",
+          size: file.size,
+          type: file.type || "application/octet-stream",
+          lastModified: file.lastModified,
+          addedAt: new Date().toISOString(),
+          blob: file,
+        });
+      });
+      transaction.oncomplete = resolve;
+      transaction.onerror = () => reject(transaction.error || new Error("Could not save these files."));
+      transaction.onabort = () => reject(transaction.error || new Error("The browser cancelled this save."));
+    });
+    await refreshSavedFiles(`${files.length} file${files.length === 1 ? "" : "s"} saved locally. No file was uploaded.`);
+  } catch (error) {
+    setFileStatus(`Could not save these files: ${error.message || "browser storage is full or unavailable"}`, true);
+  }
+}
+
+async function downloadSavedFile(id) {
+  try {
+    const database = await openFileDatabase();
+    const record = await new Promise((resolve, reject) => {
+      const request = database.transaction(FILE_STORE_NAME, "readonly").objectStore(FILE_STORE_NAME).get(id);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    if (!record || !record.blob) throw new Error("Saved file not found.");
+    const url = URL.createObjectURL(record.blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = record.name;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (error) {
+    setFileStatus(`Could not download the file: ${error.message}`, true);
+  }
+}
+
+async function deleteSavedFile(id) {
+  try {
+    const database = await openFileDatabase();
+    await new Promise((resolve, reject) => {
+      const transaction = database.transaction(FILE_STORE_NAME, "readwrite");
+      transaction.objectStore(FILE_STORE_NAME).delete(id);
+      transaction.oncomplete = resolve;
+      transaction.onerror = () => reject(transaction.error);
+    });
+    await refreshSavedFiles("Saved copy removed from this browser. The original PC file is unchanged.");
+  } catch (error) {
+    setFileStatus(`Could not remove the saved copy: ${error.message}`, true);
+  }
+}
+
+function updateAdminOverview(weekTotal) {
+  const todayKey = getDateKey(new Date());
+  const doneToday = tasks.filter((task) => task.done && task.completedAt && getDateKey(new Date(task.completedAt)) === todayKey).length;
+  const focusToday = getTodayMinutes();
+  const totalWeek = typeof weekTotal === "number"
+    ? weekTotal
+    : getWeekData().reduce((sum, day) => sum + day.minutes, 0);
+  $("#admin-today-focus").textContent = formatMinutes(focusToday);
+  $("#admin-today-tasks").textContent = doneToday;
+  $("#admin-week-focus").textContent = formatMinutes(totalWeek);
+  $("#admin-file-count").textContent = savedFiles.length;
+  $("#admin-reminder-count").textContent = scheduleItems.filter((item) => item.reminder).length;
+  const now = new Date();
+  const nowMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
+  const upcoming = scheduleItems.filter((item) => item.reminder).map((item) => {
+    const [hour, minute] = item.time.split(":").map(Number);
+    const at = hour * 60 + minute;
+    return { item, at, delta: (at - nowMinutes + 1440) % 1440, tomorrow: at < nowMinutes };
+  }).sort((a, b) => a.delta - b.delta)[0];
+  $("#admin-next-reminder").textContent = upcoming
+    ? `${upcoming.tomorrow ? "Tomorrow " : ""}${upcoming.item.time} GMT`
+    : "None set";
+}
+
+const curriculumCards = [
+  { topic:"WEB FOUNDATIONS", title:"Your first HTML page", summary:"Build the page skeleton with headings, paragraphs, links, and images.", question:"What does HTML describe in a web page?", recall:"HTML describes the meaning and structure of content in the browser." },
+  { topic:"WEB FOUNDATIONS", title:"Semantic page structure", summary:"Use header, main, nav, section, and footer to make page regions clear.", question:"Why use semantic elements such as main and nav?", recall:"Semantic tags tell browsers and assistive tools what each region is for." },
+  { topic:"STYLE SYSTEMS", title:"CSS selectors and cascade", summary:"Choose elements with selectors, then use the cascade to keep styles predictable.", question:"What helps the browser choose between conflicting CSS rules?", recall:"Specificity and source order help the browser choose a winning style rule." },
+  { topic:"WEB LAYOUT", title:"Responsive layouts", summary:"Learn how flexible grids and breakpoints help one page work on both a laptop and a phone.", question:"What does a CSS media query let you do?", recall:"A CSS media query applies styles only when its screen condition is met." },
+  { topic:"STYLE SYSTEMS", title:"Color, type, and spacing", summary:"Create visual hierarchy by repeating a small, consistent set of design tokens.", question:"What is a design token?", recall:"Design tokens are named values for colors, spacing, type, and other repeated styles." },
+  { topic:"JAVASCRIPT BASICS", title:"Variables and values", summary:"Store information with const and let, then choose a useful data type.", question:"When should you use let instead of const?", recall:"Use const by default; use let only when you need to reassign the variable." },
+  { topic:"JAVASCRIPT BASICS", title:"Events and interactions", summary:"Listen for a click or form submit and make the page respond to the user.", question:"What makes an event listener run?", recall:"An event listener runs a function when an event such as click occurs." },
+  { topic:"JAVASCRIPT BASICS", title:"Updating the page with DOM", summary:"Select an element and change its text, classes, or attributes with JavaScript.", question:"What does DOM stand for in front-end development?", recall:"The DOM is the browser's object model of the document's HTML elements." },
+  { topic:"JAVASCRIPT BASICS", title:"Arrays and reusable functions", summary:"Group related values in arrays and split repeated logic into small functions.", question:"At which index does a JavaScript array begin?", recall:"An array is an ordered list; its first element is at index zero." },
+  { topic:"C FOUNDATIONS", title:"C variables and types", summary:"Practice int, float, and char with clear names and a matching value type.", question:"What does a variable's type describe in C?", recall:"A variable is a named place to store a value; its type describes that value." },
+  { topic:"C FOUNDATIONS", title:"Conditions and loops", summary:"Make decisions with if/else, then repeat steps with a loop that eventually ends.", question:"What must be true for a loop to stop normally?", recall:"A loop needs a condition that eventually becomes false so it can stop." },
+  { topic:"SPRINT PROJECT", title:"Build and explain your project", summary:"Combine your page, styles, and interactions, then describe how each part works.", question:"What are the three core front-end technologies and what does each contribute?", recall:"HTML structures content, CSS styles it, and JavaScript adds behavior." },
+];
+
+function renderCurriculumCard() {
+  const card = curriculumCards[curriculumCardIndex];
+  const number = curriculumCardIndex + 1;
+  $("#curriculum-card-number").textContent = number;
+  $("#curriculum-topic").textContent = `${card.topic} · CARD ${String(number).padStart(2, "0")}`;
+  $("#curriculum-title").textContent = card.title;
+  $("#curriculum-summary").textContent = card.summary;
+  $("#curriculum-progress-fill").style.width = `${(number / curriculumCards.length) * 100}%`;
+  $("#curriculum-previous").disabled = curriculumCardIndex === 0;
+  $("#curriculum-next").disabled = curriculumCardIndex === curriculumCards.length - 1;
+  const recallQuiz = $("#recall-quiz");
+  recallQuiz.querySelector(".recall-label").textContent = `QUICK RECALL · ${card.topic.split(" ")[0]}`;
+  recallQuiz.querySelector("p").textContent = card.question;
+  $("#recall-answer").textContent = card.recall;
+  $("#recall-answer").hidden = true;
+  $("#recall-reveal").setAttribute("aria-expanded", "false");
+  $("#recall-reveal").textContent = "Reveal answer";
+}
+
+function applySuperchargerSettings() {
+  document.body.classList.toggle("bionic-reading", Boolean(superchargerSettings.bionic));
+  document.body.classList.toggle("focus-lane-active", Boolean(superchargerSettings.focus));
+  document.querySelectorAll("[data-supercharger]").forEach((button) => {
+    const enabled = Boolean(superchargerSettings[button.dataset.supercharger]);
+    button.setAttribute("aria-checked", String(enabled));
+    button.classList.toggle("super-toggle--on", enabled);
+  });
+  $("#recall-quiz").hidden = !superchargerSettings.recall;
+  $("#supercharger-active-count").textContent = Object.values(superchargerSettings).filter(Boolean).length;
+}
+
+function toggleSupercharger(name) {
+  superchargerSettings[name] = !superchargerSettings[name];
+  localStorage.setItem(SUPERCHARGERS_KEY, JSON.stringify(superchargerSettings));
+  applySuperchargerSettings();
+  const label = ({ bionic: "Bionic Reading Mode", recall: "Active Recall Injections", focus: "Focus Lane" })[name];
+  showNotice(`${label} ${superchargerSettings[name] ? "enabled" : "disabled"}.`);
+}
+
+
+const APP_PAGE_TITLES = {
+  today: "Today",
+  sprint: "Sprint path",
+  tasks: "To Do diary",
+  focus: "Focus room",
+  alarm: "Daily alarm",
+  progress: "My progress",
+  timetable: "Daily timetable",
+  sleep: "Sleep session",
+  "study-helper": "Study helper",
+  files: "Important files",
+  admin: "Profile & admin demo",
+};
+
+function setActivePage(page, { scroll = true } = {}) {
+  const safePage = APP_PAGE_TITLES[page] ? page : "today";
+  document.body.dataset.activePage = safePage;
+  document.querySelectorAll("[data-view]").forEach((section) => {
+    section.hidden = section.dataset.view !== safePage;
+  });
+  const dashboardViews = new Set(["tasks", "focus", "alarm", "progress", "timetable", "sleep", "study-helper", "files", "admin"]);
+  $("#dashboard-grid").hidden = !dashboardViews.has(safePage);
+  document.querySelectorAll("[data-app-page]").forEach((link) => {
+    const active = link.dataset.appPage === safePage;
+    link.classList.toggle("nav-link--active", active);
+    if (active) link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
+  });
+  $("#current-page-title").textContent = APP_PAGE_TITLES[safePage];
+  if (scroll) window.scrollTo(0, 0);
+}
+
+function navigateToFeature(target) {
+  if (!target) return;
+  const targetId = target.replace(/^#/, "");
+  if (targetId === "today") return setActivePage("today");
+  const section = document.getElementById(targetId);
+  if (!section) return;
+  const page = section.dataset.view || (targetId === "curriculum" || targetId === "superchargers" ? "sprint" : null);
+  if (page) setActivePage(page);
+}
+
+function updateGMTClock() {
+  $("#today-date").textContent = new Intl.DateTimeFormat(undefined, {
+    timeZone: "UTC",
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  }).format(new Date());
+}
+
+function initializeStudySprint() {
+  setActivePage("today", { scroll: false });
+  document.querySelectorAll("[data-app-page]").forEach((link) => {
+    link.addEventListener("click", (event) => {
+      event.preventDefault();
+      setActivePage(link.dataset.appPage);
+    });
+  });
+  document.addEventListener("click", (event) => {
+    const link = event.target.closest('a[href^="#"]');
+    if (!link || link.hasAttribute("data-app-page")) return;
+    const href = link.getAttribute("href");
+    if (!href || href === "#") return;
+    const target = document.getElementById(href.slice(1));
+    if (!target) return;
+    const page = target.dataset.view || (href === "#today" ? "today" : href === "#curriculum" || href === "#superchargers" ? "sprint" : href === "#alarm" ? "alarm" : null);
+    if (page) {
+      event.preventDefault();
+      setActivePage(page);
+    }
+  });
+  updateGMTClock();
+  window.setInterval(updateGMTClock, 60000);
+  renderCurriculumCard();
+  applySuperchargerSettings();
+  $("#curriculum-previous").addEventListener("click", () => {
+    if (curriculumCardIndex === 0) return;
+    curriculumCardIndex -= 1;
+    localStorage.setItem(CURRICULUM_CARD_KEY, JSON.stringify(curriculumCardIndex));
+    renderCurriculumCard();
+  });
+  $("#curriculum-next").addEventListener("click", () => {
+    if (curriculumCardIndex >= curriculumCards.length - 1) return;
+    curriculumCardIndex += 1;
+    localStorage.setItem(CURRICULUM_CARD_KEY, JSON.stringify(curriculumCardIndex));
+    renderCurriculumCard();
+  });
+  document.querySelectorAll("[data-supercharger]").forEach((button) => {
+    button.addEventListener("click", () => toggleSupercharger(button.dataset.supercharger));
+  });
+  $("#recall-reveal").addEventListener("click", () => {
+    const answer = $("#recall-answer");
+    answer.hidden = !answer.hidden;
+    $("#recall-reveal").setAttribute("aria-expanded", String(!answer.hidden));
+    $("#recall-reveal").textContent = answer.hidden ? "Reveal answer" : "Hide answer";
+  });
+
+  const goalInput = $("#goal-minutes");
+  goalInput.value = dailyGoalMinutes;
+  $("#goal-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const requestedGoal = Number(goalInput.value);
+    if (!Number.isFinite(requestedGoal) || requestedGoal < 15 || requestedGoal > 600) {
+      showNotice("Choose a daily target between 15 and 600 minutes.");
+      return;
+    }
+    dailyGoalMinutes = Math.round(requestedGoal / 15) * 15;
+    goalInput.value = dailyGoalMinutes;
+    localStorage.setItem(GOAL_KEY, JSON.stringify(dailyGoalMinutes));
+    renderProgress();
+    showNotice(`Daily focus target set to ${dailyGoalMinutes} minutes.`);
+  });
+
+  $("#helper-form").addEventListener("submit", answerStudyQuestion);
+  // Supabase Auth controls the account form in cloud.js; the local demo profile is disabled here.
+
+  $("#choose-files").addEventListener("click", () => $("#file-picker").click());
+  $("#choose-folder").addEventListener("click", () => $("#folder-picker").click());
+  $("#file-picker").addEventListener("change", (event) => {
+    saveFilesFromComputer(event.target.files);
+    event.target.value = "";
+  });
+  $("#folder-picker").addEventListener("change", (event) => {
+    saveFilesFromComputer(event.target.files);
+    event.target.value = "";
+  });
+  refreshSavedFiles();
+
+  $("#add-task-button").addEventListener("click", () => {
+    const form = $("#add-task-form");
+    form.hidden = !form.hidden;
+    $("#add-task-button").setAttribute("aria-expanded", String(!form.hidden));
+    if (!form.hidden) {
+      resetTaskForm();
+      $("#new-task-input").focus();
+    }
+  });
+  $("#add-task-form").addEventListener("submit", addTask);
+  $("#cancel-task-edit").addEventListener("click", () => {
+    resetTaskForm();
+    $("#add-task-form").hidden = true;
+    $("#add-task-button").setAttribute("aria-expanded", "false");
+  });
+  document.querySelectorAll("[data-filter]").forEach((button) => {
+    button.addEventListener("click", () => {
+      filter = button.dataset.filter;
+      document.querySelectorAll("[data-filter]").forEach((item) => {
+        item.classList.toggle("filter-button--active", item === button);
+      });
+      renderTasks();
+    });
+  });
+  document.querySelectorAll("[data-mode]").forEach((button) => {
+    button.addEventListener("click", () => setTimerMode(button.dataset.mode));
+  });
+  $("#timer-control").addEventListener("click", startOrPauseTimer);
+  $("#reset-timer").addEventListener("click", resetTimer);
+
+  $("#add-event-button").addEventListener("click", () => {
+    const form = $("#schedule-form");
+    form.hidden = !form.hidden;
+    $("#add-event-button").setAttribute("aria-expanded", String(!form.hidden));
+    if (!form.hidden) {
+      resetScheduleForm();
+      $("#event-title").focus();
+    }
+  });
+  $("#schedule-form").addEventListener("submit", addScheduleItem);
+  $("#cancel-event-edit").addEventListener("click", () => {
+    resetScheduleForm();
+    $("#schedule-form").hidden = true;
+    $("#add-event-button").setAttribute("aria-expanded", "false");
+  });
+
+  $("#set-alarm").addEventListener("click", setAlarm);
+  $("#cancel-alarm").addEventListener("click", cancelAlarm);
+  $("#test-birds").addEventListener("click", startBirdsong);
+  $("#stop-birds").addEventListener("click", stopBirdsong);
+  $("#enable-notifications").addEventListener("click", enableNotifications);
+  $("#start-sleep").addEventListener("click", startSleep);
+  $("#end-sleep").addEventListener("click", endSleep);
+
+  renderTasks();
+  renderProgress();
+  renderSchedule();
+  renderSleep();
+  formatTimer();
+  renderAlarmStatus();
+  $("#cancel-alarm").hidden = !(alarm && alarm.enabled);
+  alarmInterval = window.setInterval(checkAlarm, 5000);
+  checkRoutineReminders();
+  routineReminderInterval = window.setInterval(checkRoutineReminders, 15000);
+  if (sleepSession && sleepSession.startedAt) sleepTicker = window.setInterval(renderSleep, 60000);
+}
+
+document.addEventListener("DOMContentLoaded", initializeStudySprint);
+
+
+========================================================================================
+FILE: client/cloud.js
+========================================================================================
+import { createClient } from "@supabase/supabase-js";
+
+const APP_PREFIX = "studysprint-";
+const PRIVATE_LOCAL_KEYS = new Set(["studysprint-demo-profile-v1", "studysprint-demo-session-v1"]);
+const FILES_BUCKET = "studysprint-files";
+const form = document.querySelector("#profile-form");
+const status = document.querySelector("#profile-status");
+const nameInput = document.querySelector("#profile-name");
+const emailInput = document.querySelector("#profile-email");
+const passwordInput = document.querySelector("#profile-password");
+const submitButton = document.querySelector("#profile-submit");
+const signoutButton = document.querySelector("#profile-signout");
+const nameLabel = document.querySelector("#profile-name-label");
+const modeButtons = [...document.querySelectorAll("[data-profile-mode]")];
+let mode = "signup";
+let client = null;
+let currentSession = null;
+let syncTimer = null;
+let syncing = false;
+let suppressSync = false;
+
+function appData() {
+  const data = {};
+  for (let i = 0; i < localStorage.length; i += 1) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith(APP_PREFIX) && !PRIVATE_LOCAL_KEYS.has(key)) {
+      data[key] = localStorage.getItem(key);
+    }
+  }
+  return data;
+}
+
+function stable(value) {
+  if (Array.isArray(value)) return `[${value.map(stable).join(",")}]`;
+  if (value && typeof value === "object") {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stable(value[key])}`).join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function renderAccount() {
+  const user = currentSession?.user;
+  const email = user?.email || "";
+  const displayName = user?.user_metadata?.display_name || email.split("@")[0] || "Student";
+  const signedIn = Boolean(user);
+  form.hidden = signedIn;
+  signoutButton.hidden = !signedIn;
+  modeButtons.forEach((button) => {
+    button.disabled = signedIn;
+    button.classList.toggle("profile-mode--active", button.dataset.profileMode === mode);
+  });
+  nameLabel.hidden = mode !== "signup";
+  nameInput.required = mode === "signup";
+  passwordInput.autocomplete = mode === "signup" ? "new-password" : "current-password";
+  passwordInput.value = "";
+  submitButton.textContent = mode === "signup" ? "Create account" : "Sign in";
+  if (signedIn) {
+    document.querySelector("#profile-greeting").textContent = `Hello, ${displayName}`;
+    status.textContent = `Signed in as ${email}. Your StudySprint data is connected to your Supabase account.`;
+    document.querySelector("#profile-avatar-large").textContent = displayName.slice(0, 1).toUpperCase();
+    document.querySelector(".avatar").textContent = displayName.slice(0, 1).toUpperCase();
+    document.querySelector("#admin-profile-status").textContent = "Supabase account active";
+  } else {
+    document.querySelector("#profile-greeting").textContent = "Your StudySprint account";
+    document.querySelector("#profile-avatar-large").textContent = "S";
+    document.querySelector(".avatar").textContent = "S";
+    document.querySelector("#admin-profile-status").textContent = "Signed out";
+  }
+}
+
+function showStatus(message, isError = false) {
+  status.textContent = message;
+  status.style.color = isError ? "#ff9f9f" : "";
+}
+
+function showPageNotice(message) {
+  const notice = document.querySelector("#notice");
+  if (notice) {
+    document.querySelector("#notice-text").textContent = message;
+    notice.hidden = false;
+    window.setTimeout(() => { notice.hidden = true; }, 4200);
+  }
+}
+
+async function saveCloudState() {
+  if (!client || !currentSession || syncing || suppressSync) return;
+  syncing = true;
+  try {
+    const { error } = await client.from("study_state").upsert({
+      user_id: currentSession.user.id,
+      data: appData(),
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "user_id" });
+    if (error) throw error;
+  } catch (error) {
+    console.error("StudySprint cloud save failed:", error);
+    showStatus("Cloud sync paused: " + (error.message || "check your Supabase setup"), true);
+  } finally {
+    syncing = false;
+  }
+}
+
+function queueSave() {
+  if (!currentSession || suppressSync) return;
+  clearTimeout(syncTimer);
+  syncTimer = window.setTimeout(saveCloudState, 900);
+}
+
+function watchLocalChanges() {
+  const originalSetItem = localStorage.setItem.bind(localStorage);
+  const originalRemoveItem = localStorage.removeItem.bind(localStorage);
+  localStorage.setItem = (key, value) => {
+    originalSetItem(key, value);
+    if (String(key).startsWith(APP_PREFIX) && !PRIVATE_LOCAL_KEYS.has(key)) queueSave();
+  };
+  localStorage.removeItem = (key) => {
+    originalRemoveItem(key);
+    if (String(key).startsWith(APP_PREFIX) && !PRIVATE_LOCAL_KEYS.has(key)) queueSave();
+  };
+  window.addEventListener("storage", (event) => {
+    if (event.key?.startsWith(APP_PREFIX)) queueSave();
+  });
+  window.setInterval(() => { if (currentSession) saveCloudState(); }, 20000);
+}
+
+async function restoreCloudState(user) {
+  const { data: row, error } = await client.from("study_state").select("data").eq("user_id", user.id).maybeSingle();
+  if (error) throw error;
+  if (!row) {
+    const local = appData();
+    if (Object.keys(local).length) {
+      const migrate = window.confirm("This Supabase account has no saved StudySprint data yet. Upload this browser's current StudySprint data to this account? Choose Cancel to clear the local app data instead.");
+      if (!migrate) {
+        suppressSync = true;
+        try {
+          for (let i = localStorage.length - 1; i >= 0; i -= 1) {
+            const key = localStorage.key(i);
+            if (key?.startsWith(APP_PREFIX) && !PRIVATE_LOCAL_KEYS.has(key)) localStorage.removeItem(key);
+          }
+        } finally {
+          suppressSync = false;
+        }
+        window.location.reload();
+        return;
+      }
+    }
+    await saveCloudState();
+    return;
+  }
+  const remoteData = row.data || {};
+  if (stable(remoteData) === stable(appData())) return;
+  suppressSync = true;
+  try {
+    for (let i = localStorage.length - 1; i >= 0; i -= 1) {
+      const key = localStorage.key(i);
+      if (key?.startsWith(APP_PREFIX) && !PRIVATE_LOCAL_KEYS.has(key)) localStorage.removeItem(key);
+    }
+    Object.entries(remoteData).forEach(([key, value]) => {
+      if (key.startsWith(APP_PREFIX) && !PRIVATE_LOCAL_KEYS.has(key)) localStorage.setItem(key, String(value));
+    });
+  } finally {
+    suppressSync = false;
+  }
+  window.location.reload();
+}
+
+function setMode(nextMode) {
+  mode = nextMode;
+  renderAccount();
+  showStatus(mode === "signup" ? "Create an account with your email and a strong password." : "Sign in to load your personal StudySprint data.");
+}
+
+async function submitAuth(event) {
+  event.preventDefault();
+  submitButton.disabled = true;
+  showStatus(mode === "signup" ? "Creating your account…" : "Signing in…");
+  const email = emailInput.value.trim().toLowerCase();
+  const password = passwordInput.value;
+  try {
+    if (mode === "signup") {
+      const displayName = nameInput.value.trim();
+      const { data, error } = await client.auth.signUp({
+        email,
+        password,
+        options: { data: { display_name: displayName } },
+      });
+      if (error) throw error;
+      if (data.session) {
+        currentSession = data.session;
+        renderAccount();
+        await restoreCloudState(data.user);
+        showStatus("Account created and signed in. Your data is syncing.");
+      } else {
+        setMode("signin");
+        emailInput.value = email;
+        showStatus("Account created. Check your email to confirm it, then sign in.");
+      }
+    } else {
+      const { data, error } = await client.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      currentSession = data.session;
+      renderAccount();
+      await restoreCloudState(data.user);
+      showStatus("Signed in. Your StudySprint data is syncing.");
+    }
+  } catch (error) {
+    showStatus(error.message || "Authentication failed. Check your details and Supabase settings.", true);
+  } finally {
+    submitButton.disabled = false;
+  }
+}
+
+async function signOut() {
+  signoutButton.disabled = true;
+  await saveCloudState();
+  suppressSync = true;
+  try {
+    for (let i = localStorage.length - 1; i >= 0; i -= 1) {
+      const key = localStorage.key(i);
+      if (key?.startsWith(APP_PREFIX) && !PRIVATE_LOCAL_KEYS.has(key)) localStorage.removeItem(key);
+    }
+  } finally {
+    suppressSync = false;
+  }
+  const { error } = await client.auth.signOut();
+  if (error) {
+    showStatus(error.message, true);
+    signoutButton.disabled = false;
+    return;
+  }
+  currentSession = null;
+  window.location.reload();
+}
+
+function initCloudFilePanel() {
+  const panel = document.querySelector(".files-panel");
+  const localList = document.querySelector("#file-list");
+  if (!panel || !localList) return null;
+  let cloudPanel = document.querySelector("#cloud-file-vault");
+  if (!cloudPanel) {
+    cloudPanel = document.createElement("section");
+    cloudPanel.id = "cloud-file-vault";
+    cloudPanel.className = "cloud-vault";
+    cloudPanel.innerHTML = '<div class="cloud-vault-head"><div><h3>Private cloud files</h3><p>Uploaded to your personal Supabase storage.</p></div><button type="button" class="sound-test" id="refresh-cloud-files">Refresh</button></div><div id="cloud-file-list" class="cloud-file-list" aria-live="polite"></div>';
+    localList.insertAdjacentElement("afterend", cloudPanel);
+  }
+  document.querySelector("#refresh-cloud-files").addEventListener("click", () => renderCloudFiles());
+  return cloudPanel;
+}
+
+function cloudFileStatus(message, isError = false) {
+  const el = document.querySelector("#file-storage-status");
+  if (el) {
+    el.textContent = message;
+    el.style.color = isError ? "#ff9f9f" : "";
+  }
+}
+
+async function renderCloudFiles() {
+  const list = document.querySelector("#cloud-file-list");
+  if (!list) return;
+  if (!currentSession) {
+    list.textContent = "Sign in to view files stored in your private cloud vault.";
+    return;
+  }
+  list.textContent = "Loading cloud files…";
+  const { data, error } = await client.from("study_files").select("id,storage_path,original_name,byte_size,created_at").order("created_at", { ascending: false });
+  if (error) { list.textContent = "Could not load files: " + error.message; return; }
+  list.replaceChildren();
+  if (!data.length) { list.textContent = "No cloud files yet. Choose a file or folder above while signed in to upload."; return; }
+  data.forEach((item) => {
+    const row = document.createElement("div");
+    row.className = "cloud-file-row";
+    const name = document.createElement("span");
+    name.className = "cloud-file-name";
+    name.textContent = item.original_name;
+    const size = document.createElement("small");
+    size.textContent = `${Math.max(1, Math.round(item.byte_size / 1024))} KB`;
+    const download = document.createElement("button");
+    download.type = "button"; download.className = "sound-test"; download.textContent = "Download";
+    download.addEventListener("click", async () => {
+      const { data: signed, error: urlError } = await client.storage.from(FILES_BUCKET).createSignedUrl(item.storage_path, 60);
+      if (urlError) { cloudFileStatus(urlError.message, true); return; }
+      const link = document.createElement("a"); link.href = signed.signedUrl; link.download = item.original_name; link.click();
+    });
+    const remove = document.createElement("button");
+    remove.type = "button"; remove.className = "file-action file-action--delete"; remove.textContent = "Delete";
+    remove.addEventListener("click", async () => {
+      if (!window.confirm(`Delete ${item.original_name} from your private cloud vault?`)) return;
+      const { error: storageError } = await client.storage.from(FILES_BUCKET).remove([item.storage_path]);
+      if (storageError) { cloudFileStatus(storageError.message, true); return; }
+      const { error: rowError } = await client.from("study_files").delete().eq("id", item.id);
+      if (rowError) { cloudFileStatus(rowError.message, true); return; }
+      await renderCloudFiles();
+    });
+    row.append(name, size, download, remove);
+    list.append(row);
+  });
+}
+
+async function uploadCloudFiles(fileList) {
+  if (!currentSession || !fileList?.length) return;
+  const files = Array.from(fileList);
+  cloudFileStatus(`Uploading ${files.length} file(s) to your private cloud…`);
+  for (const file of files) {
+    const relative = file.webkitRelativePath || file.name;
+    const safe = relative.split("/").map((part) => part.replace(/[^a-zA-Z0-9._-]/g, "_")).join("/");
+    const storagePath = `${currentSession.user.id}/${crypto.randomUUID()}-${safe}`;
+    const { error: uploadError } = await client.storage.from(FILES_BUCKET).upload(storagePath, file, {
+      contentType: file.type || "application/octet-stream",
+      upsert: false,
+    });
+    if (uploadError) { cloudFileStatus(`Upload failed for ${file.name}: ${uploadError.message}`, true); continue; }
+    const { error: insertError } = await client.from("study_files").insert({
+      user_id: currentSession.user.id,
+      storage_path: storagePath,
+      original_name: relative,
+      content_type: file.type || "application/octet-stream",
+      byte_size: file.size,
+    });
+    if (insertError) {
+      await client.storage.from(FILES_BUCKET).remove([storagePath]);
+      cloudFileStatus(`Could not save file details for ${file.name}: ${insertError.message}`, true);
+    }
+  }
+  await renderCloudFiles();
+  cloudFileStatus("Files saved in this browser and uploaded to your private Supabase vault.");
+}
+
+async function start() {
+  form.addEventListener("submit", submitAuth);
+  modeButtons.forEach((button) => button.addEventListener("click", () => setMode(button.dataset.profileMode)));
+  signoutButton.addEventListener("click", signOut);
+  setMode("signup");
+  watchLocalChanges();
+  initCloudFilePanel();
+  try {
+    const response = await fetch("/api/config");
+    const config = await response.json();
+    if (!response.ok || !config.supabaseUrl || !config.supabaseAnonKey) {
+      showStatus("Supabase is not configured yet. Copy .env.example to .env, add your project URL and anon/publishable key, then restart the server.", true);
+      document.querySelector("#cloud-file-list").textContent = "Set up Supabase and sign in to enable private cloud file uploads.";
+      return;
+    }
+    client = createClient(config.supabaseUrl, config.supabaseAnonKey);
+    const { data: { session }, error } = await client.auth.getSession();
+    if (error) throw error;
+    currentSession = session;
+    renderAccount();
+    if (currentSession) {
+      await restoreCloudState(currentSession.user);
+      await renderCloudFiles();
+      showStatus(`Signed in as ${currentSession.user.email}. Your cloud account is ready.`);
+    } else {
+      renderCloudFiles();
+    }
+    client.auth.onAuthStateChange((_event, sessionNow) => {
+      currentSession = sessionNow;
+      renderAccount();
+      if (!sessionNow) renderCloudFiles();
+    });
+    ["file-picker", "folder-picker"].forEach((id) => {
+      document.querySelector(`#${id}`).addEventListener("change", (event) => {
+        uploadCloudFiles(event.target.files);
+      });
+    });
+    if (currentSession) window.setInterval(renderCloudFiles, 60000);
+  } catch (error) {
+    console.error("StudySprint Supabase setup error:", error);
+    showStatus("Could not connect to Supabase: " + (error.message || "check configuration"), true);
+  }
+}
+
+document.addEventListener("DOMContentLoaded", start);
+
+
+========================================================================================
+FILE: server/index.js
+========================================================================================
+import "dotenv/config";
+import express from "express";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const app = express();
+const port = Number(process.env.PORT || 3000);
+const here = path.dirname(fileURLToPath(import.meta.url));
+const projectRoot = path.resolve(here, "..");
+const clientDir = path.join(projectRoot, "client");
+const distDir = path.join(projectRoot, "dist");
+const production = process.env.NODE_ENV === "production" || process.argv.includes("--production");
+
+app.disable("x-powered-by");
+app.get("/api/health", (_request, response) => response.json({ ok: true }));
+app.get("/api/config", (_request, response) => {
+  const supabaseUrl = process.env.SUPABASE_URL || "";
+  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || "";
+  response.json({
+    configured: Boolean(supabaseUrl && supabaseAnonKey),
+    supabaseUrl,
+    // The anon/publishable key is intended for browser use; database safety comes from RLS.
+    supabaseAnonKey,
+  });
+});
+
+if (production) {
+  app.use(express.static(distDir));
+  app.get("*", (_request, response) => response.sendFile(path.join(distDir, "index.html")));
+}
+
+app.listen(port, "0.0.0.0", () => {
+  console.log(`StudySprint config/API server listening on http://localhost:${port}`);
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
+    console.warn("Supabase is not configured. Copy .env.example to .env and add your project URL and anon/publishable key.");
+  }
+});
+
+
+========================================================================================
+FILE: supabase/schema.sql
+========================================================================================
+-- StudySprint Supabase setup
+-- Run this whole file in Supabase Dashboard → SQL Editor → New query.
+-- RLS ensures users can access only rows and storage objects belonging to their own auth.uid().
+
+create table if not exists public.study_state (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  data jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.study_state enable row level security;
+
+drop policy if exists "Students read their own study state" on public.study_state;
+create policy "Students read their own study state"
+  on public.study_state for select to authenticated
+  using (auth.uid() = user_id);
+
+drop policy if exists "Students create their own study state" on public.study_state;
+create policy "Students create their own study state"
+  on public.study_state for insert to authenticated
+  with check (auth.uid() = user_id);
+
+drop policy if exists "Students update their own study state" on public.study_state;
+create policy "Students update their own study state"
+  on public.study_state for update to authenticated
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+grant select, insert, update on public.study_state to authenticated;
+revoke all on public.study_state from anon;
+
+create table if not exists public.study_files (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  storage_path text not null unique,
+  original_name text not null,
+  content_type text not null default 'application/octet-stream',
+  byte_size bigint not null default 0 check (byte_size >= 0),
+  created_at timestamptz not null default now()
+);
+
+alter table public.study_files enable row level security;
+
+drop policy if exists "Students read their own file records" on public.study_files;
+create policy "Students read their own file records"
+  on public.study_files for select to authenticated
+  using (auth.uid() = user_id);
+
+drop policy if exists "Students add their own file records" on public.study_files;
+create policy "Students add their own file records"
+  on public.study_files for insert to authenticated
+  with check (auth.uid() = user_id);
+
+drop policy if exists "Students delete their own file records" on public.study_files;
+create policy "Students delete their own file records"
+  on public.study_files for delete to authenticated
+  using (auth.uid() = user_id);
+
+grant select, insert, delete on public.study_files to authenticated;
+revoke all on public.study_files from anon;
+
+-- Private bucket; users can only read, create, or delete objects in their own user-id folder.
+insert into storage.buckets (id, name, public, file_size_limit)
+values ('studysprint-files', 'studysprint-files', false, 52428800)
+on conflict (id) do update set public = false, file_size_limit = 52428800;
+
+drop policy if exists "Students read their own StudySprint objects" on storage.objects;
+create policy "Students read their own StudySprint objects"
+  on storage.objects for select to authenticated
+  using (bucket_id = 'studysprint-files' and (storage.foldername(name))[1] = auth.uid()::text);
+
+drop policy if exists "Students upload to their own StudySprint folder" on storage.objects;
+create policy "Students upload to their own StudySprint folder"
+  on storage.objects for insert to authenticated
+  with check (bucket_id = 'studysprint-files' and (storage.foldername(name))[1] = auth.uid()::text);
+
+drop policy if exists "Students delete their own StudySprint objects" on storage.objects;
+create policy "Students delete their own StudySprint objects"
+  on storage.objects for delete to authenticated
+  using (bucket_id = 'studysprint-files' and (storage.foldername(name))[1] = auth.uid()::text);
+
+
+========================================================================================
+FILE: README.md
+========================================================================================
+# StudySprint — Supabase full-stack starter
+
+StudySprint keeps the original HTML/CSS/JavaScript dashboard and adds real Supabase email/password authentication, per-user cloud sync, and private cloud file uploads. Express serves the Supabase public configuration to the frontend; Supabase Auth, Postgres, Storage, and row-level security provide the backend services.
+
+## Folder structure
+
+```text
+StudySprint-Supabase/
+├── client/
+│   ├── index.html       # StudySprint UI and account form
+│   ├── style.css        # Responsive theme and components
+│   ├── script.js        # Timer, diary, timetable, reminders, charts
+│   └── cloud.js         # Supabase Auth, account sync, private file vault
+├── server/
+│   └── index.js         # Express config/health endpoints; production static server
+├── supabase/
+│   └── schema.sql       # Tables, private bucket, and RLS policies
+├── .env.example         # Template only; copy to .env
+├── .gitignore           # Excludes .env and generated dependencies
+├── package.json
+├── package-lock.json   # Generated by npm install; pins dependency versions
+├── vite.config.js
+└── README.md
+```
+
+## Setup in VS Code
+
+1. Install Node.js LTS and VS Code.
+2. Create a free Supabase project at supabase.com. In **Project Settings → API**, copy the Project URL and anon/publishable key. Never use or share a `service_role` key in frontend code.
+3. Open this project folder in VS Code. Copy `.env.example` to a new file named `.env`, then replace the placeholders with your Supabase Project URL and anon/publishable key.
+4. In Supabase **SQL Editor**, run the complete `supabase/schema.sql` file. It creates the tables, private file bucket, and per-user security policies.
+5. In the VS Code terminal, run `npm install`, then `npm run dev`. Open the local URL Vite prints (normally `http://localhost:5173`).
+6. In Supabase **Authentication → URL Configuration**, add the local app URL (for example, `http://localhost:5173`) to the allowed redirect URLs if you later enable email confirmation.
+
+For production, build with `npm run build` and run `npm start` after setting `NODE_ENV=production`. Deploy the Node server to a host that supports Node.js. GitHub Pages alone cannot run Express.
+
+## How the backend works
+
+- Supabase Auth creates/verifies users and manages sessions. Passwords are handled by Supabase Auth; StudySprint does not store them.
+- `study_state` stores the app's per-user settings, tasks, timer history, timetable, goals, and other localStorage-backed state in a JSONB row. Cloud sync runs after changes and periodically.
+- `study_files` stores metadata; file bytes are stored in a **private** Supabase Storage bucket. Signed download links expire quickly.
+- Postgres row-level security and Storage policies check `auth.uid()` so an authenticated user cannot read another account's records or files.
+- The browser only receives the public anon/publishable key. This is expected; the SQL policies are the security boundary. Do not add service-role keys to `.env` used by this app or commit any `.env` file.
+
+## Scope and limitations
+
+This is a learning starter, not a production-reviewed authentication system. Supabase email confirmation may need to be completed before first sign-in. Configure SMTP for dependable confirmation emails. The timetable and alarm still depend on the browser remaining open; cloud sync does not turn them into reliable background push notifications. The included study helper is prepared/offline content, not a live AI. The Profile page is the signed-in user's account screen, not a privileged admin role; real admin permissions require an explicit server-side role policy.
+
+## Files to study
+
+- `client/index.html`: feature page structure and form controls.
+- `client/style.css`: visual design, theme, and responsive layout.
+- `client/script.js`: existing beginner-level app interactions.
+- `client/cloud.js`: Supabase account, data synchronization, and file storage calls.
+- `server/index.js`: Express backend.
+- `supabase/schema.sql`: database and access-control policies.
+
+
+========================================================================================
+FILE: .vscode/extensions.json
+========================================================================================
+{
+  "recommendations": [
+    "ritwickdey.LiveServer"
+  ]
+}
+
