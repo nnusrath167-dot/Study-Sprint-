@@ -2,6 +2,10 @@
 
 StudySprint is a study-planning dashboard with a focus timer, diary, daily timetable, progress tracking, sleep log, and file vault. It uses HTML, CSS, JavaScript, an Express server, and Supabase for authentication, database sync, and private cloud file storage.
 
+## Live app
+
+Not deployed yet. The GitHub Pages URL `https://nnusrath167-dot.github.io/Study-Sprint-/` currently returns 404, and this app requires a Node.js host for its Express backend. Add the public deployment URL here after deploying the app.
+
 ## Repository contents
 
 The project source is uploaded as [`ALL_SOURCE_CODE.txt`](./ALL_SOURCE_CODE.txt). It is a combined text archive, not a set of runnable files in separate folders. Each section is labeled with a `FILE: path` heading. To run the app, recreate the files locally using those paths.
