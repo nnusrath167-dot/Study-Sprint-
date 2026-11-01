@@ -812,7 +812,7 @@ body[data-active-page="focus"] .inspiration-card { grid-column:1; }
 .profile-delete-submit { border: 0; border-radius: 9px; padding: 9px 11px; background: #a63e4d; color: #fff; font-size: 9px; font-weight: 700; }
 .profile-delete-submit:hover { background: #c14959; }
 .profile-delete-submit:disabled { cursor: wait; opacity: .6; }
-.profile-consent { grid-column: 1 / -1; display: flex !important; align-items: flex-start; gap: 7px !important; line-height: 1.4; }
+.profile-form .profile-consent { grid-column: 1 / -1; display: flex; align-items: flex-start; gap: 7px; line-height: 1.4; }
 .profile-consent input { flex: 0 0 auto; width: auto !important; min-width: 14px; margin: 1px 0 0; accent-color: #58e2dc; }
 .profile-consent a { color: #b6d2ff; }
 .page-footer a,.profile-note a { color: #b6d2ff; }
