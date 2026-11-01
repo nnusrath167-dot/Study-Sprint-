@@ -801,6 +801,22 @@ body[data-active-page="focus"] .inspiration-card { grid-column:1; }
   .topbar-right { gap: 7px; }
   .install-app-button { padding: 7px 8px; font-size: 9px; }
 }
+.profile-delete-account,.profile-delete-cancel { border: 1px solid #8a4853; border-radius: 9px; padding: 8px 11px; background: transparent; color: #ffb6bf; font-size: 9px; font-weight: 700; }
+.profile-delete-account:hover,.profile-delete-cancel:hover { background: #482b35; }
+.profile-delete-form { display: grid; gap: 9px; margin-top: 12px; padding: 12px; border: 1px solid #633945; border-radius: 12px; background: #241d27; }
+.profile-delete-form p { margin: 0; color: #f0c4c8; font-size: 9px; line-height: 1.5; }
+.profile-delete-form label { display: grid; gap: 5px; color: #d7bec1; font-size: 9px; font-weight: 700; }
+.profile-delete-form input { width: 100%; min-width: 0; border: 1px solid #67424a; border-radius: 8px; padding: 9px; background: #171821; color: #f6e8e9; font: inherit; }
+.profile-delete-form input:focus-visible { outline: 2px solid #ff9ba8; outline-offset: 1px; }
+.profile-delete-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.profile-delete-submit { border: 0; border-radius: 9px; padding: 9px 11px; background: #a63e4d; color: #fff; font-size: 9px; font-weight: 700; }
+.profile-delete-submit:hover { background: #c14959; }
+.profile-delete-submit:disabled { cursor: wait; opacity: .6; }
+.profile-consent { grid-column: 1 / -1; display: flex !important; align-items: flex-start; gap: 7px !important; line-height: 1.4; }
+.profile-consent input { flex: 0 0 auto; width: auto !important; min-width: 14px; margin: 1px 0 0; accent-color: #58e2dc; }
+.profile-consent a { color: #b6d2ff; }
+.page-footer a,.profile-note a { color: #b6d2ff; }
+.page-footer a:focus-visible,.profile-note a:focus-visible,.profile-delete-account:focus-visible,.profile-delete-cancel:focus-visible,.profile-delete-submit:focus-visible { outline: 2px solid #58e2dc; outline-offset: 2px; }
 
 /* Give each routed feature the full page width; never leave an empty dashboard column beside it. */
 body[data-active-page="tasks"] .left-column,

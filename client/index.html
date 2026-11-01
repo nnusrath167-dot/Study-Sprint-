@@ -90,12 +90,23 @@
                 <label id="profile-name-label">Display name<input id="profile-name" type="text" maxlength="40" autocomplete="name" placeholder="Your name"></label>
                 <label>Email address<input id="profile-email" type="email" maxlength="120" autocomplete="email" placeholder="you@example.com" required></label>
                 <label>Password<input id="profile-password" type="password" minlength="8" autocomplete="new-password" placeholder="At least 8 characters" required></label>
+                <label class="profile-consent" id="profile-consent-label"><input id="profile-privacy-consent" type="checkbox" required><span>I agree to the <a href="/privacy-policy.html" target="_blank" rel="noopener">Privacy Policy</a> and understand my study data will sync when I sign in.</span></label>
                 <button class="schedule-submit" id="profile-submit" type="submit">Create account</button>
               </form>
               <button class="profile-signout" id="profile-signout" type="button" hidden>Sign out</button>
+              <button class="profile-delete-account" id="profile-delete-account" type="button" hidden>Delete my account</button>
+              <form class="profile-delete-form" id="profile-delete-form" hidden>
+                <p>This permanently deletes your account, cloud study data, uploaded cloud files, and StudySprint data saved in this browser.</p>
+                <label>Type your account email to confirm<input id="profile-delete-email" type="email" autocomplete="email" required></label>
+                <label>Confirm your password<input id="profile-delete-password" type="password" autocomplete="current-password" required></label>
+                <div class="profile-delete-actions">
+                  <button class="profile-delete-submit" id="profile-delete-submit" type="submit">Permanently delete account</button>
+                  <button class="profile-delete-cancel" id="profile-delete-cancel" type="button">Cancel</button>
+                </div>
+              </form>
             </div>
           </div>
-          <p class="profile-note"><strong>Account security:</strong> Authentication and private data are managed by Supabase. Use a strong, unique password. Never place a Supabase service-role key in frontend code. Admin metrics remain personal to your account; this starter does not implement a privileged admin role.</p>
+          <p class="profile-note"><strong>Account security:</strong> Authentication and private data are managed by Supabase. Use a strong, unique password. Never place a Supabase service-role key in frontend code. Read the <a href="/privacy-policy.html">Privacy Policy</a> or <a href="/account-deletion.html">account deletion instructions</a>.</p>
         </section>
 
         <section class="supercharger-zone page-section-view" id="superchargers" data-view="sprint" aria-labelledby="supercharger-heading">
@@ -237,7 +248,7 @@
           </div>
         </section>
 
-        <footer class="page-footer"><span>Made for learning, one sprint at a time.</span><span>StudySprint <span class="footer-heart">✳</span></span></footer>
+        <footer class="page-footer"><span>Made for learning, one sprint at a time.</span><span><a href="/privacy-policy.html">Privacy</a> · <a href="/account-deletion.html">Delete account</a> · StudySprint <span class="footer-heart">✳</span></span></footer>
       </div>
     </main>
   </div>

@@ -10,7 +10,15 @@ const emailInput = document.querySelector("#profile-email");
 const passwordInput = document.querySelector("#profile-password");
 const submitButton = document.querySelector("#profile-submit");
 const signoutButton = document.querySelector("#profile-signout");
+const deleteAccountButton = document.querySelector("#profile-delete-account");
+const deleteAccountForm = document.querySelector("#profile-delete-form");
+const deleteAccountEmailInput = document.querySelector("#profile-delete-email");
+const deleteAccountPasswordInput = document.querySelector("#profile-delete-password");
+const deleteAccountSubmit = document.querySelector("#profile-delete-submit");
+const deleteAccountCancel = document.querySelector("#profile-delete-cancel");
 const nameLabel = document.querySelector("#profile-name-label");
+const privacyConsentLabel = document.querySelector("#profile-consent-label");
+const privacyConsent = document.querySelector("#profile-privacy-consent");
 const modeButtons = [...document.querySelectorAll("[data-profile-mode]")];
 let mode = "signup";
 let client = null;
@@ -45,11 +53,15 @@ function renderAccount() {
   const signedIn = Boolean(user);
   form.hidden = signedIn;
   signoutButton.hidden = !signedIn;
+  deleteAccountButton.hidden = !signedIn;
+  deleteAccountForm.hidden = !signedIn || deleteAccountForm.hidden;
   modeButtons.forEach((button) => {
     button.disabled = signedIn;
     button.classList.toggle("profile-mode--active", button.dataset.profileMode === mode);
   });
   nameLabel.hidden = mode !== "signup";
+  privacyConsentLabel.hidden = mode !== "signup";
+  privacyConsent.required = mode === "signup";
   nameInput.required = mode === "signup";
   passwordInput.autocomplete = mode === "signup" ? "new-password" : "current-password";
   passwordInput.value = "";
@@ -232,6 +244,102 @@ async function signOut() {
   window.location.reload();
 }
 
+function clearLocalFileStore() {
+  if (!("indexedDB" in window)) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open("studysprint-files-v1", 1);
+    request.onerror = () => reject(request.error || new Error("Could not open browser file storage."));
+    request.onblocked = () => reject(new Error("Close other StudySprint tabs before deleting this account."));
+    request.onsuccess = () => {
+      const database = request.result;
+      if (!database.objectStoreNames.contains("saved-files")) {
+        database.close();
+        resolve();
+        return;
+      }
+
+      const transaction = database.transaction("saved-files", "readwrite");
+      transaction.objectStore("saved-files").clear();
+      transaction.oncomplete = () => {
+        database.close();
+        resolve();
+      };
+      transaction.onerror = () => {
+        database.close();
+        reject(transaction.error || new Error("Could not clear browser file storage."));
+      };
+      transaction.onabort = () => {
+        database.close();
+        reject(transaction.error || new Error("Could not clear browser file storage."));
+      };
+    };
+  });
+}
+
+async function deleteAccount(event) {
+  event.preventDefault();
+  const user = currentSession?.user;
+  const email = user?.email || "";
+  if (!user || !email) return;
+
+  if (deleteAccountEmailInput.value.trim().toLowerCase() !== email.toLowerCase()) {
+    showStatus("The email address does not match your signed-in account.", true);
+    return;
+  }
+
+  deleteAccountSubmit.disabled = true;
+  showStatus("Confirming your password…");
+  let accountDeleted = false;
+  try {
+    const { data, error } = await client.auth.signInWithPassword({
+      email,
+      password: deleteAccountPasswordInput.value,
+    });
+    if (error) throw error;
+    if (!data.session?.access_token) throw new Error("Could not confirm your account. Sign in again and retry.");
+
+    currentSession = data.session;
+    showStatus("Deleting your account and private data…");
+    const response = await fetch("/api/account", {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${data.session.access_token}` },
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || `Account deletion failed (${response.status}).`);
+    accountDeleted = true;
+
+    const { error: signOutError } = await client.auth.signOut({ scope: "local" });
+    if (signOutError) throw signOutError;
+    await clearLocalFileStore();
+
+    suppressSync = true;
+    try {
+      for (let i = localStorage.length - 1; i >= 0; i -= 1) {
+        const key = localStorage.key(i);
+        if (key?.startsWith(APP_PREFIX)) localStorage.removeItem(key);
+      }
+    } finally {
+      suppressSync = false;
+    }
+
+    currentSession = null;
+    window.location.reload();
+  } catch (error) {
+    console.error("StudySprint account deletion request failed:", error);
+    if (accountDeleted) {
+      currentSession = null;
+      renderAccount();
+    }
+    const message = accountDeleted
+      ? `Your cloud account was deleted, but this browser could not clear all local data: ${error.message || "unknown error"}. Clear this site's browser data or contact nnusrath167@gmail.com.`
+      : error.message || "Account deletion failed. Please retry or contact support.";
+    showStatus(message, true);
+  } finally {
+    deleteAccountPasswordInput.value = "";
+    deleteAccountSubmit.disabled = false;
+  }
+}
+
 function initCloudFilePanel() {
   const panel = document.querySelector(".files-panel");
   const localList = document.querySelector("#file-list");
@@ -331,6 +439,17 @@ async function start() {
   form.addEventListener("submit", submitAuth);
   modeButtons.forEach((button) => button.addEventListener("click", () => setMode(button.dataset.profileMode)));
   signoutButton.addEventListener("click", signOut);
+  deleteAccountButton.addEventListener("click", () => {
+    deleteAccountForm.hidden = false;
+    deleteAccountEmailInput.value = currentSession?.user?.email || "";
+    deleteAccountPasswordInput.focus();
+  });
+  deleteAccountCancel.addEventListener("click", () => {
+    deleteAccountForm.reset();
+    deleteAccountForm.hidden = true;
+    showStatus("Account deletion cancelled.");
+  });
+  deleteAccountForm.addEventListener("submit", deleteAccount);
   setMode("signup");
   watchLocalChanges();
   initCloudFilePanel();
