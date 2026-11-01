@@ -37,6 +37,9 @@ button:not(:disabled), a[href], input:not(:disabled) { cursor: pointer; }
 .breadcrumb-dot { color: #c6ccc1; }
 .breadcrumb strong { color: #394940; font-weight: 700; }
 .topbar-right { display: flex; gap: 14px; align-items: center; }
+.install-app-button { border: 1px solid rgba(88, 226, 220, .35); border-radius: 10px; padding: 8px 12px; background: #20232e; color: #b6fffa; font-size: 11px; font-weight: 700; }
+.install-app-button:hover { background: #292e3b; }
+.install-app-button:focus-visible { outline: 2px solid #58e2dc; outline-offset: 2px; }
 .date-pill { color: #748177; display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 20px; border: 1px solid #e7eae2; background: #fbfbf7; font-size: 11px; font-weight: 600; }
 .online-dot,.focus-live-dot { display: inline-block; height: 6px; width: 6px; border-radius: 50%; background: #8aa989; }
 .avatar { display: grid; place-items: center; height: 34px; width: 34px; border-radius: 50%; background: #ebded0; color: #795843; font-family: "Fraunces", serif; font-size: 16px; }
@@ -795,6 +798,8 @@ body[data-active-page="focus"] .inspiration-card { grid-column:1; }
   .home-actions { width:100%; gap:8px; }
   .home-secondary-link { min-height:38px; }
   .dashboard-grid { display:grid; grid-template-columns:minmax(0,1fr); }
+  .topbar-right { gap: 7px; }
+  .install-app-button { padding: 7px 8px; font-size: 9px; }
 }
 
 /* Give each routed feature the full page width; never leave an empty dashboard column beside it. */
