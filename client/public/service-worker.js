@@ -1,5 +1,11 @@
-const CACHE_NAME = "studysprint-shell-v1";
-const APP_SHELL = ["/", "/manifest.webmanifest", "/icons/studysprint.svg"];
+const CACHE_NAME = "studysprint-shell-v2";
+const APP_SHELL = [
+  "/",
+  "/manifest.webmanifest",
+  "/icons/studysprint.svg",
+  "/icons/studysprint-192.png",
+  "/icons/studysprint-512.png",
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
