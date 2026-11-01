@@ -1,0 +1,27 @@
+{
+  "id": "/",
+  "name": "StudySprint — your study space",
+  "short_name": "StudySprint",
+  "description": "Plan study tasks, focus in short sprints, and track your progress.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#171821",
+  "theme_color": "#171821",
+  "categories": ["education", "productivity"],
+  "icons": [
+    {
+      "src": "/icons/studysprint.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/studysprint.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
