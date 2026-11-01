@@ -1,3 +1,7 @@
+## Live app
+
+[Open StudySprint](https://studysprint-nnusrath167.onrender.com)
+
 # StudySprint — Supabase full-stack starter
 
 StudySprint keeps the original HTML/CSS/JavaScript dashboard and adds real Supabase email/password authentication, per-user cloud sync, and private cloud file uploads. Express serves the Supabase public configuration to the frontend; Supabase Auth, Postgres, Storage, and row-level security provide the backend services.
