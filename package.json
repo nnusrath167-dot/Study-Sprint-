@@ -1,0 +1,19 @@
+{
+  "name": "studysprint-supabase",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k \"node server/index.js\" \"vite --config vite.config.js\"",
+    "build": "vite build --config vite.config.js",
+    "start": "node server/index.js --production"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.57.0",
+    "concurrently": "^9.2.1",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
+    "vite": "^6.3.5"
+  },
+  "devDependencies": {}
+}
