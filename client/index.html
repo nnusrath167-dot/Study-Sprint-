@@ -79,11 +79,11 @@
         </section>
 
         <section class="panel profile-panel page-section-view" id="profile" data-view="admin" aria-labelledby="profile-title">
-          <div class="profile-heading"><div><div class="section-kicker"></div><h2 id="profile-title">Your StudySprint profile</h2><p class="panel-subtitle">Create an account to securely save your StudySprint data across devices.</p></div><span class="demo-pill">Protected with Supabase Auth</span></div>
+          <div class="profile-heading"><div><div class="section-kicker">SUPABASE ACCOUNT</div><h2 id="profile-title">Your StudySprint profile</h2><p class="panel-subtitle">Sign in to securely sync your StudySprint data across devices.</p></div><span class="demo-pill">Protected with Supabase Auth</span></div>
           <div class="profile-content">
-            <div class="profile-intro"><div class="profile-avatar-large" id="profile-avatar-large">S</div><div><strong id="profile-greeting">Welcome to StudySprint</strong><p id="profile-status" role="status">SUPABASE ACCOUNT</p></div></div>
+            <div class="profile-intro"><div class="profile-avatar-large" id="profile-avatar-large">S</div><div><strong id="profile-greeting">Welcome to StudySprint</strong><p id="profile-status" role="status">Create a Supabase account to sync your study data across devices.</p></div></div>
             <div class="profile-controls" id="profile-controls">
-              <div class="profile-mode-tabs" role="group" aria-label="Create a Supabase account to sync your study data across devices."><button class="profile-mode profile-mode--active" type="button" data-profile-mode="signup">Sign up</button><button class="profile-mode" type="button" data-profile-mode="signin">Sign in</button></div>
+              <div class="profile-mode-tabs" role="group" aria-label="Account mode"><button class="profile-mode profile-mode--active" type="button" data-profile-mode="signup">Sign up</button><button class="profile-mode" type="button" data-profile-mode="signin">Sign in</button></div>
               <form class="profile-form" id="profile-form">
                 <label id="profile-name-label">Display name<input id="profile-name" type="text" maxlength="40" autocomplete="name" placeholder="Your name"></label>
                 <label>Email address<input id="profile-email" type="email" maxlength="120" autocomplete="email" placeholder="you@example.com" required></label>
@@ -162,13 +162,13 @@
             </article>
 
             <article class="panel files-panel page-section-view" id="files" data-view="files">
-              <div class="panel-heading"><div><div class="section-kicker">Account mode</div><h2>Important files <span class="task-total" id="file-count">0</span></h2><p class="panel-subtitle">YOUR FILES · DEVICE + CLOUD</p></div><span class="local-pill">Choose files to keep on this device. Sign in to upload private copies to your Supabase account.</span></div>
+              <div class="panel-heading"><div><div class="section-kicker">YOUR FILES · DEVICE + CLOUD</div><h2>Important files <span class="task-total" id="file-count">0</span></h2><p class="panel-subtitle">Choose files to keep on this device. Sign in to upload private copies to your Supabase account.</p></div><span class="local-pill">Private cloud after sign-in</span></div>
               <div class="file-picker-actions"><button class="add-task-button" id="choose-files" type="button">＋ Choose files</button><button class="add-task-button" id="choose-folder" type="button">▤ Choose folder</button></div>
               <input id="file-picker" class="visually-hidden" type="file" multiple aria-label="Choose files from your computer">
               <input id="folder-picker" class="visually-hidden" type="file" multiple webkitdirectory directory aria-label="Choose a folder from your computer">
-              <div class="file-storage-status" id="file-storage-status" role="status">Private cloud after sign-in</div>
+              <div class="file-storage-status" id="file-storage-status" role="status">Files stay in this browser unless you sign in to upload private copies to your Supabase vault.</div>
               <div class="file-list" id="file-list" aria-live="polite"><div class="file-empty">No saved files yet. Choose files or a folder to start.</div></div>
-              <p class="schedule-note">Files stay in this browser unless you sign in to upload private copies to your Supabase vault.</p>
+              <p class="schedule-note">The original PC files are not moved or changed. StudySprint keeps a local copy and, when you are signed in, uploads a private copy to your Supabase account. Browser storage can be cleared. Avoid highly sensitive documents.</p>
             </article>
           </div>
 
@@ -219,8 +219,8 @@
             </article>
 
             <article class="panel admin-panel page-section-view" id="admin" data-view="admin">
-              <div class="section-kicker">The original PC files are not moved or changed. StudySprint keeps a local copy and, when you are signed in, uploads a private copy to your Supabase account. Browser storage can be cleared. Avoid highly sensitive documents.</div>
-              <div class="admin-title-row"><div><h2>StudySprint overview</h2><p class="panel-subtitle">A personal dashboard for Choose files to keep on this device. Sign in to upload private copies to your Supabase account..</p></div><span class="demo-pill">Your personal study dashboard. Sign in to sync your data across devices.</span></div>
+              <div class="section-kicker">ACCOUNT OVERVIEW · PERSONAL</div>
+              <div class="admin-title-row"><div><h2>StudySprint overview</h2><p class="panel-subtitle">Your personal study dashboard. Sign in to sync your data across devices.</p></div><span class="demo-pill">Personal account only</span></div>
               <div class="admin-metrics">
                 <div class="admin-metric"><span>Focus today</span><strong id="admin-today-focus">0 min</strong></div>
                 <div class="admin-metric"><span>Tasks done today</span><strong id="admin-today-tasks">0</strong></div>
@@ -229,8 +229,8 @@
                 <div class="admin-metric"><span>Routine reminders</span><strong id="admin-reminder-count">0</strong></div>
                 <div class="admin-metric"><span>Next reminder</span><strong class="admin-next-reminder" id="admin-next-reminder">None set</strong></div>
               </div>
-              <div class="admin-account-row"><span>Personal account only</span><strong id="admin-profile-status">Signed out</strong></div>
-              <p class="feature-note">Account status</p>
+              <div class="admin-account-row"><span>Account status</span><strong id="admin-profile-status">Signed out</strong></div>
+              <p class="feature-note">This page shows only your personal study activity. Signing in syncs your data; it does not grant administrator permissions or expose other users' data.</p>
             </article>
           </div>
         </section>
