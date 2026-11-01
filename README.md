@@ -1,56 +1,102 @@
-# StudySprint
+# StudySprint — Supabase full-stack starter
 
-[Open the live app](https://studysprint-nnusrath167.onrender.com)
+StudySprint keeps the original HTML/CSS/JavaScript dashboard and adds real Supabase email/password authentication, per-user cloud sync, and private cloud file uploads. Express serves the Supabase public configuration to the frontend; Supabase Auth, Postgres, Storage, and row-level security provide the backend services.
 
-StudySprint is a study planner with focus sessions, a diary, routine and sleep tracking, progress charts, an offline study helper, and a private file vault. Supabase Auth, Postgres, and Storage are configured for per-user accounts and cloud sync. Render serves the web app and its public Supabase configuration; only the Supabase publishable key is exposed to the browser. The database row-level security policies protect private user records.
+## Live app
 
-## Install on desktop
+https://studysprint-nnusrath167.onrender.com
 
-StudySprint is a progressive web app (PWA). Open the HTTPS app in a supported browser such as Chrome or Edge. When the **Install app** button appears in StudySprint, select it and confirm. You can also use the browser menu's install option. The installed app opens in its own window.
+The app is deployed on Render's free web-service plan and connected to the `Study-Sprint` Supabase project. Supabase Auth, the row-level-security-protected Postgres tables, and private cloud storage are configured. Create an account from the app's Profile page to sync your study data; Supabase may ask you to confirm your email before signing in. The Render service uses only the public publishable key, never a service-role key.
 
-The app shell can open offline after an initial online visit. Supabase sign-in, cloud sync, and private cloud files require an internet connection.
+## Install StudySprint on a desktop
+
+StudySprint is a progressive web app (PWA). After the PWA files have been deployed, open the live HTTPS app in a supported desktop browser such as Chrome or Edge. Choose **Install app** in the StudySprint toolbar when it appears, or use the browser's **Install StudySprint** option in its menu. The installed app opens in its own window. The web app shell can open offline after it has loaded once, but account sign-in, cloud sync, and cloud files need an internet connection.
 
 ## Google Play status
 
-The PWA is not yet a signed Android App Bundle and has not been submitted to Google Play. A Play release still needs an Android Trusted Web Activity package, a signing key and Digital Asset Links fingerprint, a completed Play Console listing and policy declarations, and Google's review.
+The desktop-installable PWA is live, but an Android App Bundle has not yet been built or submitted to Google Play. The confirmed Play identity is `com.nnusrath167.studysprint`, and the declared audience is 13+. A Play release still needs a signed Android Trusted Web Activity package, a signing key and Digital Asset Links fingerprint, a completed Play Console listing and policy declarations, and Google's review. This Play Console account is an organization account. Do not publish until the server secret is configured for account deletion, the policy pages and store listing have been reviewed, and required testing is complete.
 
-Before release, choose a permanent Android application ID, publish a complete privacy policy and support contact, provide an account/data deletion path, finish the Play Console Data safety and content-rating forms, and prepare the store listing assets. Google currently requires personal developer accounts created after November 13, 2023 to complete a closed test with at least 12 opted-in testers for 14 continuous days before applying for production access.
+Public policy pages: [Privacy Policy](https://studysprint-nnusrath167.onrender.com/privacy-policy.html) and [Account Deletion](https://studysprint-nnusrath167.onrender.com/account-deletion.html). Public support contact: `nnusrath167@gmail.com`.
 
-## Project files
+## Folder structure
 
 ```text
-client/
-  index.html           StudySprint interface
-  style.css            Responsive styles
-  script.js            Timers, tasks, routines, reminders, charts
-  cloud.js             Supabase Auth, state sync, private file storage
-  pwa.js               Install prompt and offline support registration
-  public/
-    manifest.webmanifest
-    service-worker.js  Offline app shell; API responses are never cached
-    icons/studysprint.svg
-server/index.js        Express API and production static server
-supabase/schema.sql    Tables, private bucket, row-level security policies
-render.yaml            Render deployment blueprint
+StudySprint-Supabase/
+├── client/
+│   ├── index.html       # StudySprint UI and account form
+│   ├── style.css        # Responsive theme and components
+│   ├── script.js        # Timer, diary, timetable, reminders, charts
+│   ├── cloud.js         # Supabase Auth, account sync, private file vault
+│   ├── pwa.js           # Desktop install prompt and offline support registration
+│   └── public/          # PWA assets, privacy policy, and account deletion page
+├── server/
+│   └── index.js         # Express config/health endpoints; production static server
+├── supabase/
+│   └── schema.sql       # Tables, private bucket, and RLS policies
+├── .env.example         # Template only; copy to .env
+├── .gitignore           # Excludes .env and generated dependencies
+├── package.json
+├── package-lock.json   # Generated by npm install; pins dependency versions
+├── vite.config.js
+└── README.md
 ```
 
-## Run locally
+## Setup in VS Code
 
-1. Install Node.js LTS and run `npm install`.
-2. Copy `.env.example` to `.env`. Set `SUPABASE_URL` and `SUPABASE_ANON_KEY` using the Supabase Project URL and public anon/publishable key. Never use a service-role key in the browser or commit `.env`.
-3. Run `supabase/schema.sql` in the Supabase SQL Editor.
-4. Run `npm run dev` and open the local Vite URL (normally `http://localhost:5173`).
-5. Add the local and production app URLs to Supabase Authentication's allowed redirect URLs if email confirmation is enabled.
+1. Install Node.js LTS and VS Code.
+2. Create a free Supabase project at supabase.com. In **Project Settings → API**, copy the Project URL and anon/publishable key. Never use or share a `service_role` key in frontend code.
+3. Open this project folder in VS Code. Copy `.env.example` to a new file named `.env`, then replace the placeholders with your Supabase Project URL and anon/publishable key.
+4. In Supabase **SQL Editor**, run the complete `supabase/schema.sql` file. It creates the tables, private file bucket, and per-user security policies.
+5. In the VS Code terminal, run `npm install`, then `npm run dev`. Open the local URL Vite prints (normally `http://localhost:5173`).
+6. In Supabase **Authentication → URL Configuration**, add the local app URL (for example, `http://localhost:5173`) to the allowed redirect URLs if you later enable email confirmation.
 
-## Deploy
+## Deploy on Render
 
-The project includes a Render Blueprint in `render.yaml`. Configure `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `NODE_ENV=production` in the hosting service. Apply the database schema before using accounts. Render's free service may spin down while idle, making the first request slower. GitHub Pages cannot host this Express backend.
+The included `render.yaml` is a Render Blueprint for the Express app.
 
-## Data and limitations
+1. Make sure the project files (including `render.yaml`) are in a GitHub repository.
+2. In Render, choose **New → Blueprint**, connect the repository, and create the service.
+3. In the service's environment settings, add `SUPABASE_URL` and `SUPABASE_ANON_KEY` from your Supabase project's API settings. Add `SUPABASE_SERVICE_ROLE_KEY` as a server-only secret to enable account deletion. Never add it to frontend code, a `VITE_` variable, or GitHub.
+4. Confirm the database schema in `supabase/schema.sql` has been run in Supabase.
+5. Wait for Render's build and deploy to finish. Render will show the public `*.onrender.com` app URL. Add that URL to Supabase Authentication's allowed redirect URLs if email confirmation is enabled.
 
-- Supabase Auth manages account passwords. StudySprint does not store passwords.
-- Each account's app state is stored in its own `study_state` row. Row-level security restricts access to the signed-in user's row.
-- File metadata is stored in `study_files`; uploaded bytes are in a private Supabase Storage bucket with per-user policies.
-- Browser-only timers and reminders need the app to remain open; the web app does not provide background push alarms.
-- The study helper is offline content, not a live AI feature. The profile page is a personal account view, not an administrator console.
-- Verify account signup, email confirmation, cross-device sync, and file operations using test accounts before release. Do not publish until the privacy policy and account-deletion flow are complete.
+Render's free web service may spin down while idle, so the first request after inactivity can take longer. GitHub Pages cannot run this Express backend.
+
+## Upload changes to GitHub
+
+The GitHub repository already has its own commit history. Clone it first, copy the changed project files into the clone, and then commit and push:
+
+```powershell
+git clone https://github.com/nnusrath167-dot/Study-Sprint-.git
+Set-Location Study-Sprint-
+# Copy the project files here, preserving folders and excluding .env, node_modules, and dist.
+git status --short
+git add .
+git commit -m "Update StudySprint"
+git push
+```
+
+Check `git status --short` before committing. `.env`, `node_modules/`, and generated `dist/` output are ignored; `.env.example` is safe to publish. Configure `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `NODE_ENV=production` in the hosting provider. Configure `SUPABASE_SERVICE_ROLE_KEY` only as a server-side secret for account deletion. The existing Render service may require a manual deploy after GitHub changes. Never add a service-role key to frontend code, a `VITE_` variable, or GitHub.
+
+## How the backend works
+
+- Supabase Auth creates/verifies users and manages sessions. Passwords are handled by Supabase Auth; StudySprint does not store them.
+- `study_state` stores the app's per-user settings, tasks, timer history, timetable, goals, and other localStorage-backed state in a JSONB row. Cloud sync runs after changes and periodically.
+- `study_files` stores metadata; file bytes are stored in a **private** Supabase Storage bucket. Signed download links expire quickly.
+- Postgres row-level security and Storage policies check `auth.uid()` so an authenticated user cannot read another account's records or files.
+- The browser only receives the public anon/publishable key. This is expected; the SQL policies are the security boundary. The `DELETE /api/account` route validates the user's recent password sign-in, removes their private Storage objects, then deletes the Supabase Auth account. It is disabled until the server-only `SUPABASE_SERVICE_ROLE_KEY` is configured.
+
+## Scope and limitations
+
+This is a learning starter, not a production-reviewed authentication system. Supabase email confirmation may need to be completed before first sign-in. Configure SMTP for dependable confirmation emails. The timetable and alarm still depend on the browser remaining open; cloud sync does not turn them into reliable background push notifications. The included study helper is prepared/offline content, not a live AI. The Profile page is the signed-in user's account screen, not a privileged admin role; real admin permissions require an explicit server-side role policy.
+
+## Files to study
+
+- `client/index.html`: feature page structure and form controls.
+- `client/style.css`: visual design, theme, and responsive layout.
+- `client/script.js`: existing beginner-level app interactions.
+- `client/cloud.js`: Supabase account, data synchronization, and file storage calls.
+- `client/public/privacy-policy.html`: user-facing privacy disclosures.
+- `client/public/account-deletion.html`: public account deletion instructions for the Play listing.
+- `server/index.js`: Express backend.
+- `supabase/schema.sql`: database and access-control policies.
